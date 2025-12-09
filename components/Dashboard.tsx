@@ -110,6 +110,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
     }
   };
 
+  const handleOpenResume = () => {
+    if (user?.resumeData?.base64) {
+      try {
+        // Convert base64 to blob to open in new tab
+        const arr = user.resumeData.base64.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        console.error("Error opening resume:", e);
+      }
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'pipeline':
@@ -286,11 +307,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                     <div className="pb-6 border-b border-zinc-100">
                         <label className="text-sm font-medium text-zinc-700 block mb-3">Saved Resume</label>
                         {user?.resumeData ? (
-                            <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <FileText className="text-zinc-500" />
+                            <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg transition-colors hover:border-zinc-300 hover:bg-zinc-100">
+                                <div 
+                                    className="flex items-center gap-3 cursor-pointer flex-1"
+                                    onClick={handleOpenResume}
+                                    title="View Resume"
+                                >
+                                    <div className="p-2 bg-white border border-zinc-100 rounded-md">
+                                        <FileText className="text-zinc-500 w-5 h-5" />
+                                    </div>
                                     <div>
-                                        <p className="font-medium text-sm text-zinc-900">{user.resumeData.fileName}</p>
+                                        <p className="font-medium text-sm text-zinc-900 hover:underline decoration-zinc-300 underline-offset-2">{user.resumeData.fileName}</p>
                                         <p className="text-xs text-zinc-500">Updated {new Date(user.resumeData.lastUpdated).toLocaleDateString()}</p>
                                     </div>
                                 </div>
@@ -299,7 +326,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="text-sm text-zinc-500 italic">
+                            <div className="text-sm text-zinc-500">
                                 No resume uploaded yet.{" "}
                                 <button 
                                   onClick={() => setActiveTab('resume')}

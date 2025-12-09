@@ -23,6 +23,24 @@ const STATUSES: JobStatus[] = [
   'Accepted Offer'
 ];
 
+// Helper to ensure links are absolute
+const ensureProtocol = (url: string) => {
+  if (!url) return '';
+  return url.match(/^https?:\/\//) ? url : `https://${url}`;
+};
+
+// Helper to display clean URL
+const getDisplayUrl = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    let display = urlObj.hostname;
+    if (display.startsWith('www.')) display = display.slice(4);
+    return display + (urlObj.pathname.length > 1 ? urlObj.pathname : '');
+  } catch {
+    return url;
+  }
+};
+
 export const PipelineBoard: React.FC = () => {
   const { user, updateUser } = useUser();
   const jobs = user?.jobs || [];
@@ -63,7 +81,7 @@ export const PipelineBoard: React.FC = () => {
     const newJob: Job = {
       id: editingJobId || crypto.randomUUID(),
       description: formData.description,
-      link: formData.link,
+      link: ensureProtocol(formData.link),
       status: formData.status,
       lastUpdated: new Date().toISOString()
     };
@@ -236,9 +254,23 @@ export const PipelineBoard: React.FC = () => {
 
                       {/* Content */}
                       <div className="mb-3">
-                         <h4 className="font-medium text-zinc-900 line-clamp-3 leading-snug">
+                         <h4 className="font-medium text-zinc-900 line-clamp-3 leading-snug mb-2">
                             {job.description}
                          </h4>
+                         
+                         {job.link && (
+                             <a 
+                                href={job.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-xs text-zinc-500 bg-zinc-50 hover:bg-zinc-100 hover:text-blue-600 border border-zinc-100 rounded px-2 py-1.5 transition-colors group/link max-w-full"
+                                onClick={(e) => e.stopPropagation()}
+                             >
+                                 <LinkIcon size={12} className="shrink-0 opacity-50" />
+                                 <span className="truncate flex-1">{getDisplayUrl(job.link)}</span>
+                                 <ExternalLink size={12} className="shrink-0 opacity-50 group-hover/link:text-blue-600" />
+                             </a>
+                         )}
                       </div>
 
                       {/* Footer */}
@@ -247,17 +279,6 @@ export const PipelineBoard: React.FC = () => {
                               <Calendar size={10} />
                               {new Date(job.lastUpdated).toLocaleDateString()}
                           </span>
-                          {job.link && (
-                              <a 
-                                href={job.link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-zinc-400 hover:text-blue-600 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                  <ExternalLink size={14} />
-                              </a>
-                          )}
                       </div>
                     </div>
                   ))}

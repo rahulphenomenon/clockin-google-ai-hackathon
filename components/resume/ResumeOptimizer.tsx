@@ -120,15 +120,38 @@ export const ResumeOptimizer: React.FC = () => {
   const CurrentResumeCard = () => {
     if (!user?.resumeData) return null;
 
+    const handleOpenResume = () => {
+        if (!user?.resumeData?.base64) return;
+        try {
+            const arr = user.resumeData.base64.split(',');
+            const mime = arr[0].match(/:(.*?);/)?.[1] || 'application/pdf';
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            const blob = new Blob([u8arr], { type: mime });
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+        } catch (e) {
+            console.error("Error opening resume:", e);
+        }
+    };
+
     return (
         <div className="bg-white border border-zinc-200 rounded-xl p-6 relative group hover:border-zinc-300 transition-colors">
             <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+                <div 
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={handleOpenResume}
+                    title="View Resume"
+                >
+                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                         <FileText size={24} />
                     </div>
                     <div>
-                        <h4 className="font-medium text-zinc-900 text-lg">{user.resumeData.fileName}</h4>
+                        <h4 className="font-medium text-zinc-900 text-lg group-hover:underline decoration-zinc-200 underline-offset-4 decoration-2 transition-all">{user.resumeData.fileName}</h4>
                         <p className="text-sm text-zinc-500">
                             Uploaded on {new Date(user.resumeData.lastUpdated).toLocaleDateString()}
                         </p>
