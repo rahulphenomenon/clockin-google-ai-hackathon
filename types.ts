@@ -9,3 +9,5 @@ export interface Feature {
 }
 
 export type ViewState = 'landing' | 'dashboard';
+
+export type DashboardTab = 'resume' | 'interview' | 'mentor' | 'upskill' | 'profile';
