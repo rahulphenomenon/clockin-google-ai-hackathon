@@ -208,8 +208,9 @@ export const FeatureShowcase: React.FC = () => {
 
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-24">
-      {/* Top Tabs */}
-      <div className="flex flex-wrap justify-center gap-3 mb-12 sm:mb-20">
+      
+      {/* Horizontal Tabs Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 sm:mb-16">
         {FEATURES.map((feature, index) => {
           const isActive = index === activeTab;
           const Icon = feature.icon;
@@ -218,36 +219,57 @@ export const FeatureShowcase: React.FC = () => {
               key={feature.id}
               onClick={() => handleTabClick(index)}
               className={`
-                flex items-center gap-2 px-6 py-3 rounded-md text-sm font-medium transition-all duration-300
-                border
+                flex flex-col items-start gap-4 p-5 rounded-xl text-left transition-all duration-300
                 ${isActive 
-                  ? 'bg-zinc-900 text-white border-zinc-900 shadow-md transform scale-105' 
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                  ? 'bg-white shadow-xl shadow-zinc-200/50 border border-zinc-100 ring-1 ring-zinc-900/5 scale-[1.02]' 
+                  : 'bg-transparent border border-transparent hover:bg-zinc-50'
                 }
               `}
             >
-              <Icon size={18} />
-              {feature.title}
+              <div 
+                className={`
+                  p-2.5 rounded-lg transition-colors duration-300
+                  ${isActive 
+                    ? 'bg-zinc-900 text-white' 
+                    : 'bg-white border border-zinc-200 text-zinc-500'
+                  }
+                `}
+              >
+                <Icon size={20} />
+              </div>
+              
+              <span 
+                className={`
+                  font-medium text-base
+                  ${isActive ? 'text-zinc-900' : 'text-zinc-500'}
+                `}
+              >
+                {feature.title}
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
         {/* Left Side: Description */}
-        <div className="lg:col-span-5 space-y-6 animate-in fade-in duration-500">
-           <h3 key={activeFeature.title} className="text-3xl md:text-4xl font-serif text-zinc-900 animate-in fade-in slide-in-from-bottom-2 duration-300">
-             {activeFeature.title}
-           </h3>
-           <p key={activeFeature.description} className="text-lg text-zinc-500 leading-relaxed animate-in fade-in slide-in-from-bottom-3 duration-300 delay-75">
-             {activeFeature.description}
-           </p>
+        <div className="lg:col-span-5 pt-8 pl-4">
+           <div key={activeFeature.id} className="space-y-6 animate-fade">
+             <h3 className="text-3xl md:text-4xl font-serif text-zinc-900">
+               {activeFeature.title}
+             </h3>
+             <p className="text-lg text-zinc-500 leading-relaxed">
+               {activeFeature.description}
+             </p>
+           </div>
         </div>
 
         {/* Right Side: Mockup */}
         <div className="lg:col-span-7">
           <BrowserFrame url={`clockin.ai/${activeFeature.mockupType}`}>
-              {renderMockup()}
+              <div key={activeFeature.id} className="h-full w-full animate-fadeScale">
+                {renderMockup()}
+              </div>
           </BrowserFrame>
         </div>
       </div>
