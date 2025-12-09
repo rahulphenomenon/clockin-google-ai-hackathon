@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, Check, Plus, X, Calendar, Info } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Plus, X, Calendar, Info, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Logo } from '../Logo';
 import { useUser } from '../../context/UserContext';
@@ -19,9 +19,17 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
   const [roles, setRoles] = useState<string[]>(user?.targetRoles || []);
   const [currentRoleInput, setCurrentRoleInput] = useState('');
   const [startDate, setStartDate] = useState(user?.startDate || '');
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  // Calculate today's date in local time (YYYY-MM-DD) to avoid UTC issues
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // Auto-save to localStorage via context whenever fields change
   useEffect(() => {
+    // Don't save if there's a date error
+    if (dateError) return;
+
     const timer = setTimeout(() => {
       updateUser({
         name,
@@ -31,7 +39,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
     }, 500); // Debounce to prevent excessive writes
 
     return () => clearTimeout(timer);
-  }, [name, roles, startDate, updateUser]);
+  }, [name, roles, startDate, dateError, updateUser]);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -85,8 +93,19 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
     onExit();
   };
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedDate = e.target.value;
+    setStartDate(selectedDate);
+    
+    // Validate date
+    if (selectedDate && selectedDate < today) {
+      setDateError('Please select a date starting from today.');
+    } else {
+      setDateError(null);
+    }
+  };
+
   const progressPercentage = ((step - 1) / totalSteps) * 100;
-  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-zinc-900">
@@ -185,9 +204,17 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                   type="date"
                   min={today}
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full text-xl text-zinc-900 border border-zinc-200 rounded-md py-4 px-4 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
+                  onChange={handleDateChange}
+                  className={`w-full text-xl text-zinc-900 border rounded-md py-4 px-4 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white
+                    ${dateError ? 'border-red-300 focus:ring-red-200' : 'border-zinc-200'}
+                  `}
                 />
+                {dateError && (
+                  <div className="absolute top-full mt-2 flex items-center gap-2 text-red-600 text-sm animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle size={16} />
+                    <span>{dateError}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -212,7 +239,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                     disabled={
                     (step === 1 && !name) || 
                     (step === 2 && roles.length === 0) ||
-                    (step === 3 && !startDate)
+                    (step === 3 && (!startDate || !!dateError))
                     }
                 >
                     {step === totalSteps ? 'Take me to the app' : 'Continue'} 

@@ -9,20 +9,27 @@ import {
   Plus,
   X,
   Save,
-  Download
+  Download,
+  Home,
+  CheckCircle2,
+  Circle,
+  Layout
 } from 'lucide-react';
 import { DashboardTab } from '../types';
 import { Logo } from './Logo';
 import { useUser } from '../context/UserContext';
 import { Button } from './ui/Button';
 import { ResumeOptimizer } from './resume/ResumeOptimizer';
+import { PipelineBoard } from './pipeline/PipelineBoard';
 
 interface DashboardProps {
   onNavigateHome: () => void;
 }
 
 const NAV_ITEMS: { id: DashboardTab; label: string; icon: any }[] = [
-  { id: 'resume', label: 'Resume Optimizer', icon: FileText },
+  { id: 'home', label: 'Home', icon: Home },
+  { id: 'resume', label: 'Resume', icon: FileText },
+  { id: 'pipeline', label: 'Pipeline', icon: Layout },
   { id: 'interview', label: 'Interview Prep', icon: Video },
   { id: 'mentor', label: 'Mentor Match', icon: Users },
   { id: 'upskill', label: 'Upskill and Learn', icon: GraduationCap },
@@ -30,7 +37,7 @@ const NAV_ITEMS: { id: DashboardTab; label: string; icon: any }[] = [
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
   const { user, updateUser, clearUser } = useUser();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('resume');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('home');
 
   // Profile Edit State
   const [editName, setEditName] = useState('');
@@ -90,6 +97,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'pipeline':
+        return <PipelineBoard />;
       case 'resume':
         return <ResumeOptimizer />;
       case 'interview':
@@ -172,101 +181,179 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
              </div>
           </div>
         );
-      case 'profile':
+      case 'home':
+        const hasResume = !!user?.resumeData;
+        const hasJobs = (user?.jobs?.length || 0) > 0;
+        const completedCount = (hasResume ? 1 : 0) + (hasJobs ? 1 : 0);
+        const progress = Math.round((completedCount / 4) * 100);
+
         return (
-          <div className="max-w-2xl space-y-8 animate-in fade-in duration-500">
+          <div className="max-w-2xl space-y-10 animate-in fade-in duration-500 pb-12">
             <div>
-              <h2 className="text-4xl font-serif text-zinc-900 mb-4">Profile Settings</h2>
-              <p className="text-zinc-500 text-lg">Manage your personal information and preferences.</p>
+              <h2 className="text-4xl font-serif text-zinc-900 mb-2">
+                Welcome back, {user?.name ? user.name.split(' ')[0] : 'there'}
+              </h2>
+              <p className="text-zinc-500 text-lg">Let's get you ready for your next big opportunity.</p>
+            </div>
+
+            {/* Checklist Section */}
+            <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-serif text-xl text-zinc-900">Your Progress</h3>
+                    <span className="text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-1 rounded-full">
+                        {progress}% Complete
+                    </span>
+                </div>
+                <div className="space-y-1">
+                    {/* Resume Item */}
+                    <div 
+                        onClick={() => !hasResume && setActiveTab('resume')}
+                        className={`flex items-center gap-4 p-3 rounded-lg transition-colors group ${!hasResume ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'}`}
+                    >
+                        {hasResume ? (
+                            <CheckCircle2 className="text-green-600 w-6 h-6 shrink-0" />
+                        ) : (
+                            <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        )}
+                        <div className="flex-1">
+                            <span className={`block font-medium ${hasResume ? "text-zinc-900 line-through decoration-zinc-400" : "text-zinc-900"}`}>
+                                Upload Resume
+                            </span>
+                            {!hasResume && <p className="text-xs text-zinc-500 mt-0.5">Visit the Resume tab to analyze your CV</p>}
+                        </div>
+                        {hasResume && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Done</span>}
+                    </div>
+
+                    {/* Mock Interview */}
+                     <div 
+                         onClick={() => setActiveTab('interview')}
+                         className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 transition-colors group cursor-pointer"
+                     >
+                        <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        <span className="text-zinc-700 font-medium">Perform one mock interview</span>
+                    </div>
+
+                    {/* Skill Assessment */}
+                     <div 
+                         onClick={() => setActiveTab('upskill')}
+                         className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 transition-colors group cursor-pointer"
+                     >
+                        <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        <span className="text-zinc-700 font-medium">Take a skill assessment</span>
+                    </div>
+
+                    {/* Pipeline */}
+                     <div 
+                        onClick={() => !hasJobs && setActiveTab('pipeline')}
+                        className={`flex items-center gap-4 p-3 rounded-lg transition-colors group ${!hasJobs ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'}`}
+                     >
+                         {hasJobs ? (
+                            <CheckCircle2 className="text-green-600 w-6 h-6 shrink-0" />
+                        ) : (
+                            <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        )}
+                        <div className="flex-1">
+                            <span className={`block font-medium ${hasJobs ? "text-zinc-900 line-through decoration-zinc-400" : "text-zinc-900"}`}>
+                                Add one job to the pipeline
+                            </span>
+                        </div>
+                        {hasJobs && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Done</span>}
+                    </div>
+                </div>
             </div>
             
-            <div className="bg-white border border-zinc-200 rounded-xl p-8 space-y-6 shadow-sm">
-                {/* Resume Section */}
-                <div className="pb-6 border-b border-zinc-100">
-                    <label className="text-sm font-medium text-zinc-700 block mb-3">Saved Resume</label>
-                    {user?.resumeData ? (
-                        <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <FileText className="text-zinc-500" />
-                                <div>
-                                    <p className="font-medium text-sm text-zinc-900">{user.resumeData.fileName}</p>
-                                    <p className="text-xs text-zinc-500">Updated {new Date(user.resumeData.lastUpdated).toLocaleDateString()}</p>
+            {/* Profile Settings */}
+            <div className="pt-8 border-t border-zinc-200">
+                <h3 className="text-2xl font-serif text-zinc-900 mb-6">Profile Settings</h3>
+                
+                <div className="bg-white border border-zinc-200 rounded-xl p-8 space-y-6 shadow-sm">
+                    {/* Resume Section */}
+                    <div className="pb-6 border-b border-zinc-100">
+                        <label className="text-sm font-medium text-zinc-700 block mb-3">Saved Resume</label>
+                        {user?.resumeData ? (
+                            <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="text-zinc-500" />
+                                    <div>
+                                        <p className="font-medium text-sm text-zinc-900">{user.resumeData.fileName}</p>
+                                        <p className="text-xs text-zinc-500">Updated {new Date(user.resumeData.lastUpdated).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
+                                <Button size="sm" variant="outline" onClick={handleDownloadResume}>
+                                    <Download className="w-4 h-4" />
+                                </Button>
                             </div>
-                            <Button size="sm" variant="outline" onClick={handleDownloadResume}>
-                                <Download className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="text-sm text-zinc-500 italic">No resume uploaded yet. Visit the Resume Optimizer to add one.</div>
-                    )}
-                </div>
-
-                {/* Name */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Display Name</label>
-                    <input 
-                        type="text" 
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
-                    />
-                </div>
-
-                {/* Target Roles */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Target Roles</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                        {editRoles.map(role => (
-                            <span key={role} className="inline-flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded text-sm text-zinc-800">
-                                {role}
-                                <button onClick={() => removeRole(role)} className="hover:text-red-500"><X size={14}/></button>
-                            </span>
-                        ))}
+                        ) : (
+                            <div className="text-sm text-zinc-500 italic">No resume uploaded yet. Visit the Resume Optimizer to add one.</div>
+                        )}
                     </div>
-                    <div className="flex gap-2">
+
+                    {/* Name */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700">Display Name</label>
                         <input 
                             type="text" 
-                            value={editRoleInput}
-                            onChange={(e) => setEditRoleInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && addRole()}
-                            placeholder="Add a new role..."
-                            className="flex-1 h-9 px-3 text-sm rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
                         />
-                        <Button type="button" size="sm" variant="secondary" onClick={addRole}>
-                            <Plus size={16} />
+                    </div>
+
+                    {/* Target Roles */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700">Target Roles</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {editRoles.map(role => (
+                                <span key={role} className="inline-flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded text-sm text-zinc-800">
+                                    {role}
+                                    <button onClick={() => removeRole(role)} className="hover:text-red-500"><X size={14}/></button>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                value={editRoleInput}
+                                onChange={(e) => setEditRoleInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && addRole()}
+                                placeholder="Add a new role..."
+                                className="flex-1 h-9 px-3 text-sm rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                            />
+                            <Button type="button" size="sm" variant="secondary" onClick={addRole}>
+                                <Plus size={16} />
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Date */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700">Target Start Date</label>
+                        <input 
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-transparent"
+                        />
+                    </div>
+
+                    {/* Action */}
+                    <div className="pt-4 flex justify-end">
+                        <Button onClick={handleSaveProfile} disabled={isSaving} className="w-full sm:w-auto">
+                            {isSaving ? (
+                                <>Saving...</>
+                            ) : (
+                                <><Save className="mr-2 w-4 h-4" /> Save Changes</>
+                            )}
                         </Button>
                     </div>
                 </div>
-
-                {/* Date */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Target Start Date</label>
-                    <input 
-                        type="date"
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                         className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-transparent"
-                    />
+                
+                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 mt-6">
+                    <h4 className="font-medium text-zinc-900 mb-2">Data Privacy</h4>
+                    <p className="text-sm text-zinc-500">
+                        Your data is stored locally on this device. Clearing your browser cache will remove your profile.
+                    </p>
                 </div>
-
-                {/* Action */}
-                <div className="pt-4 flex justify-end">
-                    <Button onClick={handleSaveProfile} disabled={isSaving} className="w-full sm:w-auto">
-                        {isSaving ? (
-                            <>Saving...</>
-                        ) : (
-                            <><Save className="mr-2 w-4 h-4" /> Save Changes</>
-                        )}
-                    </Button>
-                </div>
-            </div>
-            
-            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6">
-                <h4 className="font-medium text-zinc-900 mb-2">Data Privacy</h4>
-                <p className="text-sm text-zinc-500">
-                    Your data is stored locally on this device. Clearing your browser cache will remove your profile.
-                </p>
             </div>
           </div>
         );
@@ -315,19 +402,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
         {/* Bottom Actions */}
         <div className="p-4 border-t border-zinc-100 space-y-1">
           <button
-             onClick={() => setActiveTab('profile')}
-             className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                ${activeTab === 'profile' 
-                  ? 'bg-zinc-900 text-white shadow-md' 
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-                }
-             `}
-          >
-            <User size={18} />
-            {user?.name ? user.name.split(' ')[0] : 'Profile'}
-          </button>
-          <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-colors"
           >
@@ -338,8 +412,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-64 min-h-screen">
-        <div className="h-full p-8 md:p-12">
+      <main className="flex-1 ml-64 min-h-screen h-screen overflow-hidden">
+        <div className="h-full p-8 md:p-12 overflow-y-auto">
             {renderContent()}
         </div>
       </main>

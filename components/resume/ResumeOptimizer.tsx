@@ -33,7 +33,6 @@ export const ResumeOptimizer: React.FC = () => {
       await processResume(base64, file.name);
     };
     reader.readAsDataURL(file);
-    // Reset input
     e.target.value = '';
   };
 
@@ -47,10 +46,7 @@ export const ResumeOptimizer: React.FC = () => {
     setError(null);
 
     try {
-      // Analyze immediately
       const analysis = await analyzeResume(base64, user?.targetRoles || []);
-      
-      // Update User Context (Saves to localStorage)
       updateUser({
         resumeData: {
           fileName,
@@ -139,7 +135,6 @@ export const ResumeOptimizer: React.FC = () => {
                     </div>
                 </div>
                 
-                {/* Upload New Button - Top Right */}
                 <Button 
                     variant="outline" 
                     size="sm"
@@ -150,7 +145,6 @@ export const ResumeOptimizer: React.FC = () => {
                     Upload New
                 </Button>
             </div>
-            {/* Hidden Input for "Upload New" functionality */}
             <input 
                 type="file" 
                 accept="application/pdf" 
@@ -189,7 +183,6 @@ export const ResumeOptimizer: React.FC = () => {
                      <p className="text-zinc-400 text-xs mt-2 text-right">Based on AI analysis</p>
                 </div>
 
-                {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
             </div>
@@ -267,19 +260,7 @@ export const ResumeOptimizer: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
       
-      {/* Header */}
-      <div>
-        <h2 className="text-4xl font-serif text-zinc-900 mb-4">Resume Optimizer</h2>
-        <p className="text-zinc-500 text-lg">Upload your current resume and let our AI tailor it for your dream job.</p>
-        
-        {/* Wireframe-like Tabs */}
-        <div className="flex gap-8 mt-8 border-b border-zinc-200">
-            <button className="pb-3 border-b-2 border-zinc-900 text-zinc-900 font-medium text-sm">Optimize</button>
-            <button className="pb-3 border-b-2 border-transparent text-zinc-500 hover:text-zinc-800 font-medium text-sm transition-colors cursor-not-allowed opacity-50">Create (Coming Soon)</button>
-        </div>
-      </div>
-
-      {/* Current Resume Section */}
+      {/* Current Resume Section - Moved to top */}
       <section className="space-y-6">
          <h3 className="text-2xl font-serif text-zinc-900">Current Resume</h3>
          
@@ -308,13 +289,22 @@ export const ResumeOptimizer: React.FC = () => {
          )}
       </section>
 
-      {/* Analysis Section */}
-      {user?.resumeAnalysis && !isAnalyzing && (
-          <section className="space-y-6 pt-6 border-t border-zinc-100">
-              <h3 className="text-2xl font-serif text-zinc-900">Analysis</h3>
+      {/* Tabs & Content - Moved below */}
+      <section>
+          <div className="flex gap-8 border-b border-zinc-200 mb-8">
+              <button className="pb-3 border-b-2 border-zinc-900 text-zinc-900 font-medium text-sm">Analyze</button>
+              <button className="pb-3 border-b-2 border-transparent text-zinc-500 hover:text-zinc-800 font-medium text-sm transition-colors cursor-not-allowed opacity-50">Create (Coming Soon)</button>
+          </div>
+
+          {/* Analysis Content */}
+          {user?.resumeAnalysis && !isAnalyzing ? (
               <AnalysisResults />
-          </section>
-      )}
+          ) : !isAnalyzing && !user?.resumeData && (
+              <div className="text-center py-12 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200">
+                  <p className="text-zinc-500 max-w-md mx-auto">Upload your most recent resume and learn how you can optimize it to land your dream job.</p>
+              </div>
+          )}
+      </section>
 
     </div>
   );

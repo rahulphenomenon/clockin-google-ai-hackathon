@@ -10,7 +10,17 @@ export interface Feature {
 
 export type ViewState = 'landing' | 'onboarding' | 'dashboard';
 
-export type DashboardTab = 'resume' | 'interview' | 'mentor' | 'upskill' | 'profile';
+export type DashboardTab = 'home' | 'resume' | 'interview' | 'mentor' | 'upskill' | 'pipeline';
+
+export type JobStatus = 'Applied' | 'Screening' | 'Interviewing' | 'Negotiating' | 'Received Offer' | 'Accepted Offer';
+
+export interface Job {
+  id: string;
+  description: string;
+  link?: string;
+  status: JobStatus;
+  lastUpdated: string;
+}
 
 export interface ResumeAnalysis {
   overallScore: number;
@@ -36,6 +46,7 @@ export interface UserProfile {
     lastUpdated: string;
   };
   resumeAnalysis?: ResumeAnalysis;
+  jobs?: Job[];
 }
 
 export interface UserContextType {
