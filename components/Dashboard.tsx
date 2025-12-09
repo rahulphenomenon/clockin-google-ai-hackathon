@@ -8,12 +8,14 @@ import {
   LogOut,
   Plus,
   X,
-  Save
+  Save,
+  Download
 } from 'lucide-react';
 import { DashboardTab } from '../types';
 import { Logo } from './Logo';
 import { useUser } from '../context/UserContext';
 import { Button } from './ui/Button';
+import { ResumeOptimizer } from './resume/ResumeOptimizer';
 
 interface DashboardProps {
   onNavigateHome: () => void;
@@ -74,29 +76,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
   const removeRole = (role: string) => {
     setEditRoles(editRoles.filter(r => r !== role));
   };
+  
+  const handleDownloadResume = () => {
+    if (user?.resumeData?.base64) {
+      const link = document.createElement('a');
+      link.href = user.resumeData.base64;
+      link.download = user.resumeData.fileName || 'resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'resume':
-        return (
-          <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-              <h2 className="text-4xl font-serif text-zinc-900 mb-4">Resume Optimizer</h2>
-              <p className="text-zinc-500 text-lg">Upload your current resume and let our AI tailor it for your dream job.</p>
-            </div>
-            <div className="h-96 w-full border-2 border-dashed border-zinc-200 rounded-xl flex items-center justify-center bg-white hover:bg-zinc-50 transition-colors cursor-pointer group">
-              <div className="text-center space-y-4">
-                 <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-zinc-200 transition-colors">
-                    <FileText className="w-8 h-8 text-zinc-400 group-hover:text-zinc-600" />
-                 </div>
-                 <div>
-                    <span className="text-zinc-900 font-medium">Click to upload</span>
-                    <span className="text-zinc-400 block text-sm mt-1">PDF or DOCX (Max 10MB)</span>
-                 </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <ResumeOptimizer />;
       case 'interview':
         return (
           <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
@@ -186,6 +181,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
             </div>
             
             <div className="bg-white border border-zinc-200 rounded-xl p-8 space-y-6 shadow-sm">
+                {/* Resume Section */}
+                <div className="pb-6 border-b border-zinc-100">
+                    <label className="text-sm font-medium text-zinc-700 block mb-3">Saved Resume</label>
+                    {user?.resumeData ? (
+                        <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <FileText className="text-zinc-500" />
+                                <div>
+                                    <p className="font-medium text-sm text-zinc-900">{user.resumeData.fileName}</p>
+                                    <p className="text-xs text-zinc-500">Updated {new Date(user.resumeData.lastUpdated).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={handleDownloadResume}>
+                                <Download className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="text-sm text-zinc-500 italic">No resume uploaded yet. Visit the Resume Optimizer to add one.</div>
+                    )}
+                </div>
+
                 {/* Name */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-700">Display Name</label>
@@ -260,7 +276,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 flex">
+    <div className="min-h-screen bg-zinc-50 flex">
       {/* Sidebar */}
       <aside className="fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-zinc-200 flex flex-col z-20">
         

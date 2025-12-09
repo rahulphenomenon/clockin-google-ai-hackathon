@@ -77,7 +77,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
 
   // Handle Logo Click
   const handleExit = () => {
-    // Explicit save before exiting
     updateUser({
         name,
         targetRoles: roles,
@@ -90,7 +89,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-zinc-900">
       {/* Progress Bar */}
       <div className="h-1 w-full bg-zinc-100">
         <div 
@@ -120,7 +119,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Enter your first name..."
-                className="w-full text-2xl md:text-3xl border-b-2 border-zinc-200 py-2 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-300 transition-colors bg-transparent"
+                className="w-full text-2xl md:text-3xl text-zinc-900 border-b-2 border-zinc-200 py-2 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-300 transition-colors bg-transparent"
                 autoFocus
               />
             </div>
@@ -155,7 +154,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                     onChange={(e) => setCurrentRoleInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="e.g. Product Manager"
-                    className="w-full text-xl border-b-2 border-zinc-200 py-2 pr-10 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-300 transition-colors bg-transparent"
+                    className="w-full text-xl text-zinc-900 border-b-2 border-zinc-200 py-2 pr-10 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-300 transition-colors bg-transparent"
                     autoFocus
                   />
                   {currentRoleInput && (
@@ -187,7 +186,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                   min={today}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full text-xl border border-zinc-200 rounded-md py-4 px-4 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
+                  className="w-full text-xl text-zinc-900 border border-zinc-200 rounded-md py-4 px-4 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
                 />
               </div>
             </div>
@@ -209,14 +208,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                 <Button 
                     onClick={handleNext}
                     size="lg"
-                    className="px-6" // Reduced horizontal padding from default lg (px-8)
+                    className="px-6"
                     disabled={
                     (step === 1 && !name) || 
                     (step === 2 && roles.length === 0) ||
                     (step === 3 && !startDate)
                     }
                 >
-                    {step === totalSteps ? 'Go to dashboard' : 'Continue'} 
+                    {step === totalSteps ? 'Take me to the app' : 'Continue'} 
                     {step !== totalSteps && <ArrowRight className="ml-2 w-4 h-4" />}
                 </Button>
             </div>
