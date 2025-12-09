@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Hero } from './components/Hero';
 import { FeatureShowcase } from './components/FeatureShowcase';
 import { Button } from './components/ui/Button';
 import { Dashboard } from './components/Dashboard';
 import { Logo } from './components/Logo';
+import { OnboardingFlow } from './components/onboarding/OnboardingFlow';
 import { ViewState } from './types';
+import { useUser } from './context/UserContext';
 
 function App() {
   const [view, setView] = useState<ViewState>('landing');
+  const { user } = useUser();
 
   const handleGetStarted = () => {
+    // If user already has a profile, go to dashboard
+    if (user && user.name) {
+      setView('dashboard');
+    } else {
+      setView('onboarding');
+    }
+  };
+
+  const handleOnboardingComplete = () => {
     setView('dashboard');
   };
 
@@ -20,6 +32,11 @@ function App() {
   // Dashboard View
   if (view === 'dashboard') {
     return <Dashboard onNavigateHome={handleNavigateHome} />;
+  }
+
+  // Onboarding View
+  if (view === 'onboarding') {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} onExit={handleNavigateHome} />;
   }
 
   // Landing Page View

@@ -8,6 +8,19 @@ export interface Feature {
   mockupType: 'resume' | 'interview' | 'mentorship' | 'upskill';
 }
 
-export type ViewState = 'landing' | 'dashboard';
+export type ViewState = 'landing' | 'onboarding' | 'dashboard';
 
 export type DashboardTab = 'resume' | 'interview' | 'mentor' | 'upskill' | 'profile';
+
+export interface UserProfile {
+  name: string;
+  targetRoles: string[];
+  startDate: string;
+}
+
+export interface UserContextType {
+  user: UserProfile | null;
+  updateUser: (data: Partial<UserProfile>) => void;
+  clearUser: () => void;
+  isAuthenticated: boolean;
+}
