@@ -12,7 +12,7 @@ export type ViewState = 'landing' | 'onboarding' | 'dashboard';
 
 export type DashboardTab = 'home' | 'resume' | 'interview' | 'mentor' | 'upskill' | 'pipeline';
 
-export type JobStatus = 'Applied' | 'Screening' | 'Interviewing' | 'Negotiating' | 'Received Offer' | 'Accepted Offer';
+export type JobStatus = 'Watchlist' | 'Applied' | 'Screening' | 'Interviewing' | 'Received Offer' | 'Accepted Offer';
 
 export interface Job {
   id: string;

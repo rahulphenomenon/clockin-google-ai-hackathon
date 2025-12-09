@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, 
   Video, 
@@ -54,6 +54,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
       setEditDate(user.startDate);
     }
   }, [user]);
+
+  // Check for unsaved changes
+  const hasChanges = useMemo(() => {
+    if (!user) return false;
+    const currentName = user.name || '';
+    const currentRoles = user.targetRoles || [];
+    const currentDate = user.startDate || '';
+
+    const nameChanged = editName !== currentName;
+    const dateChanged = editDate !== currentDate;
+    // Simple array comparison (assuming order matters or is preserved)
+    const rolesChanged = JSON.stringify(editRoles) !== JSON.stringify(currentRoles);
+
+    return nameChanged || dateChanged || rolesChanged;
+  }, [user, editName, editRoles, editDate]);
 
   const handleSignOut = () => {
     clearUser();
@@ -284,7 +299,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="text-sm text-zinc-500 italic">No resume uploaded yet. Visit the Resume Optimizer to add one.</div>
+                            <div className="text-sm text-zinc-500 italic">
+                                No resume uploaded yet.{" "}
+                                <button 
+                                  onClick={() => setActiveTab('resume')}
+                                  className="underline hover:text-zinc-800 transition-colors"
+                                >
+                                  Visit the resume tab
+                                </button>
+                                {" "}to add one.
+                            </div>
                         )}
                     </div>
 
@@ -295,7 +319,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                             type="text" 
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
                         />
                     </div>
 
@@ -317,7 +341,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                                 onChange={(e) => setEditRoleInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addRole()}
                                 placeholder="Add a new role..."
-                                className="flex-1 h-9 px-3 text-sm rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+                                className="flex-1 h-9 px-3 text-sm rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
                             />
                             <Button type="button" size="sm" variant="secondary" onClick={addRole}>
                                 <Plus size={16} />
@@ -332,13 +356,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                             type="date"
                             value={editDate}
                             onChange={(e) => setEditDate(e.target.value)}
-                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-transparent"
+                            className="w-full h-10 px-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all bg-white"
                         />
                     </div>
 
                     {/* Action */}
                     <div className="pt-4 flex justify-end">
-                        <Button onClick={handleSaveProfile} disabled={isSaving} className="w-full sm:w-auto">
+                        <Button 
+                            onClick={handleSaveProfile} 
+                            disabled={isSaving || !hasChanges} 
+                            className="w-full sm:w-auto"
+                        >
                             {isSaving ? (
                                 <>Saving...</>
                             ) : (

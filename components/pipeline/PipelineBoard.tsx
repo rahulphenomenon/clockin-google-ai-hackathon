@@ -15,10 +15,10 @@ import { Job, JobStatus } from '../../types';
 import { Button } from '../ui/Button';
 
 const STATUSES: JobStatus[] = [
+  'Watchlist',
   'Applied',
   'Screening',
   'Interviewing',
-  'Negotiating',
   'Received Offer',
   'Accepted Offer'
 ];
@@ -40,7 +40,7 @@ export const PipelineBoard: React.FC = () => {
   }>({
     description: '',
     link: '',
-    status: 'Applied'
+    status: 'Watchlist'
   });
 
   // Menu State
@@ -84,7 +84,7 @@ export const PipelineBoard: React.FC = () => {
     updateUser({ jobs: newJobs });
   };
 
-  const openModal = (job?: Job) => {
+  const openModal = (job?: Job, initialStatus?: JobStatus) => {
     if (job) {
       setEditingJobId(job.id);
       setFormData({
@@ -97,7 +97,7 @@ export const PipelineBoard: React.FC = () => {
       setFormData({
         description: '',
         link: '',
-        status: 'Applied'
+        status: initialStatus || 'Watchlist'
       });
     }
     setIsModalOpen(true);
@@ -264,8 +264,12 @@ export const PipelineBoard: React.FC = () => {
                   
                   {/* Empty State for Column */}
                   {jobsInColumn.length === 0 && (
-                      <div className="h-24 border-2 border-dashed border-zinc-100 rounded-lg flex items-center justify-center text-zinc-300 text-sm">
-                          Drop here
+                      <div 
+                          onClick={() => openModal(undefined, status)}
+                          className="h-24 border-2 border-dashed border-zinc-100 rounded-lg flex flex-col items-center justify-center text-zinc-400 text-sm cursor-pointer hover:bg-zinc-50 hover:border-zinc-200 transition-colors p-4 text-center group"
+                      >
+                          <span className="font-medium group-hover:text-zinc-600 transition-colors">Click to add</span>
+                          <span className="text-xs text-zinc-300 mt-1">Drag here to update status</span>
                       </div>
                   )}
                 </div>
@@ -295,7 +299,7 @@ export const PipelineBoard: React.FC = () => {
                           value={formData.description}
                           onChange={(e) => setFormData({...formData, description: e.target.value})}
                           placeholder="e.g. Senior Frontend Engineer at Google"
-                          className="w-full min-h-[80px] px-3 py-2 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all resize-none"
+                          className="w-full min-h-[80px] px-3 py-2 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all resize-none bg-white text-zinc-900"
                           autoFocus
                       />
                   </div>
@@ -309,7 +313,7 @@ export const PipelineBoard: React.FC = () => {
                               value={formData.link}
                               onChange={(e) => setFormData({...formData, link: e.target.value})}
                               placeholder="https://..."
-                              className="w-full h-9 pl-9 pr-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all text-sm"
+                              className="w-full h-9 pl-9 pr-3 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all text-sm bg-white text-zinc-900"
                           />
                       </div>
                   </div>
