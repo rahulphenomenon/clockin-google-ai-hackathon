@@ -1,4 +1,5 @@
 import React from 'react';
+import { Lock } from 'lucide-react';
 
 interface LogoProps {
   onClick?: () => void;
@@ -7,24 +8,28 @@ interface LogoProps {
 }
 
 export const Logo: React.FC<LogoProps> = ({ onClick, className = '', size = 'md' }) => {
-  // Styles based on size
-  const iconBoxClass = size === 'sm' ? 'w-6 h-6 rounded-md' : 'w-8 h-8 rounded-md';
-  const lTextClass = size === 'sm' ? 'text-sm pt-0.5' : 'text-xl pt-1';
-  const textClass = size === 'sm' ? 'text-lg' : 'text-xl';
-  const gapClass = size === 'sm' ? 'gap-3' : 'gap-2';
+  const textClass = size === 'sm' ? 'text-xl' : 'text-2xl';
+  const iconSize = size === 'sm' ? 18 : 22;
+  const spacing = size === 'sm' ? 'gap-1' : 'gap-1.5';
 
   return (
     <div 
-      className={`flex items-center ${gapClass} select-none ${onClick ? 'cursor-pointer' : ''} ${className}`} 
+      className={`flex items-end ${spacing} select-none ${onClick ? 'cursor-pointer' : ''} ${className}`} 
       onClick={onClick}
     >
-      <div className={`${iconBoxClass} bg-zinc-900 flex items-center justify-center text-white`}>
-        <span className={`font-serif italic ${lTextClass}`}>L</span>
+      <Lock 
+        size={iconSize} 
+        className="text-zinc-900 mb-0.5" 
+        strokeWidth={2}
+      />
+      <div className="flex items-end leading-none -mb-1">
+        <span className={`${textClass} font-poppins font-light text-zinc-900 tracking-tight`}>
+          c
+        </span>
+        <span className={`${textClass} font-poppins font-semibold text-zinc-900 tracking-tight`}>
+          lockin
+        </span>
       </div>
-      <span className={`${textClass} tracking-tight text-zinc-900`}>
-        <span className="font-light">c</span>
-        <span className="font-bold">Lockin</span>
-      </span>
     </div>
   );
 };

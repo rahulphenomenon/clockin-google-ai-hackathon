@@ -36,6 +36,16 @@ export interface ResumeAnalysis {
   }[];
 }
 
+export interface InterviewSession {
+  id: string;
+  role: string;
+  company?: string;
+  date: string;
+  durationSeconds: number;
+  questionCount: number;
+  type: 'Behavioral' | 'Technical' | 'Mixed';
+}
+
 export interface UserProfile {
   name: string;
   targetRoles: string[];
@@ -47,6 +57,7 @@ export interface UserProfile {
   };
   resumeAnalysis?: ResumeAnalysis;
   jobs?: Job[];
+  interviewSessions?: InterviewSession[];
 }
 
 export interface UserContextType {

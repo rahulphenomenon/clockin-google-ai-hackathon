@@ -1,10 +1,10 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import { ResumeAnalysis } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const RESPONSE_SCHEMA: Schema = {
+const RESUME_SCHEMA: Schema = {
   type: Type.OBJECT,
   properties: {
     overallScore: { type: Type.NUMBER, description: "Overall resume score out of 100" },
@@ -39,6 +39,23 @@ const RESPONSE_SCHEMA: Schema = {
     }
   },
   required: ["overallScore", "overview", "categories"]
+};
+
+const QUESTIONS_SCHEMA: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    questions: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "List of interview questions"
+    },
+    type: {
+        type: Type.STRING,
+        enum: ["Behavioral", "Technical", "Mixed"],
+        description: "The type of interview generated"
+    }
+  },
+  required: ["questions", "type"]
 };
 
 export async function analyzeResume(base64Data: string, targetRoles: string[]): Promise<ResumeAnalysis> {
@@ -81,7 +98,7 @@ export async function analyzeResume(base64Data: string, targetRoles: string[]): 
       },
       config: {
         responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
+        responseSchema: RESUME_SCHEMA,
       }
     });
 
@@ -93,4 +110,75 @@ export async function analyzeResume(base64Data: string, targetRoles: string[]): 
     console.error("Gemini Analysis Error:", error);
     throw new Error("Failed to analyze resume. Please try again.");
   }
+}
+
+export async function generateInterviewQuestions(
+    role: string,
+    company: string,
+    description: string,
+    durationMinutes: number,
+    context: string
+): Promise<{ questions: string[]; type: 'Behavioral' | 'Technical' | 'Mixed' }> {
+    
+    // Estimate question count: ~2-3 mins per question + intro/outro
+    const questionCount = Math.max(3, Math.floor(durationMinutes / 2.5));
+
+    const prompt = `
+        Act as a hiring manager for a ${role} position${company ? ` at ${company}` : ''}.
+        ${description ? `Job Description: ${description}` : ''}
+        ${context ? `Additional Context: ${context}` : ''}
+
+        Create a list of ${questionCount} interview questions for a ${durationMinutes} minute interview.
+        Include a mix of introductory, behavioral, and technical questions appropriate for the role.
+        Start with "Tell me about yourself" and end with "Do you have any questions for us?".
+        
+        Return JSON with the list of questions and the overall type of interview.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: QUESTIONS_SCHEMA
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI");
+        return JSON.parse(text);
+    } catch (error) {
+        console.error("Gemini Question Generation Error:", error);
+        throw new Error("Failed to generate interview questions.");
+    }
+}
+
+export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Promise<string> {
+    const voiceName = voice === 'Male' ? 'Puck' : 'Kore';
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-preview-tts',
+            contents: {
+                parts: [{ text: text }]
+            },
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName }
+                    }
+                }
+            }
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!base64Audio) throw new Error("No audio data returned");
+        
+        return base64Audio;
+    } catch (error) {
+        console.error("Gemini TTS Error:", error);
+        throw new Error("Failed to generate speech.");
+    }
 }

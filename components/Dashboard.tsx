@@ -21,6 +21,7 @@ import { useUser } from '../context/UserContext';
 import { Button } from './ui/Button';
 import { ResumeOptimizer } from './resume/ResumeOptimizer';
 import { PipelineBoard } from './pipeline/PipelineBoard';
+import { InterviewPrep } from './interview/InterviewPrep';
 
 interface DashboardProps {
   onNavigateHome: () => void;
@@ -138,34 +139,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
       case 'resume':
         return <ResumeOptimizer />;
       case 'interview':
-        return (
-          <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-              <h2 className="text-4xl font-serif text-zinc-900 mb-4">Interview Prep</h2>
-              <p className="text-zinc-500 text-lg">Practice behavioral and technical questions with real-time AI feedback.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="h-64 bg-white border border-zinc-200 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                        <User size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-xl mb-2">Behavioral</h3>
-                        <p className="text-zinc-500">Master your stories and soft skills with STAR method analysis.</p>
-                    </div>
-                </div>
-                <div className="h-64 bg-white border border-zinc-200 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between">
-                    <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
-                        <Video size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-xl mb-2">Technical</h3>
-                        <p className="text-zinc-500">Live coding challenges and system design deep dives.</p>
-                    </div>
-                </div>
-            </div>
-          </div>
-        );
+        return <InterviewPrep />;
       case 'mentor':
         return (
           <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
