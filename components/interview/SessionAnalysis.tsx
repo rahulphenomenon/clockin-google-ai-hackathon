@@ -7,7 +7,8 @@ import { analyzeInterviewAudio, analyzeInterviewContent } from '../../utils/gemi
 
 interface SessionAnalysisProps {
     session: InterviewSession;
-    audioBlob?: Blob; // Optional, only present immediately after interview
+    audioBlob?: Blob; // The full session audio
+    answerBlobs?: Blob[]; // Array of individual answer blobs
     onBack: () => void;
 }
 
@@ -19,7 +20,7 @@ interface AnalysisProgress {
     content: StepStatus;
 }
 
-export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audioBlob, onBack }) => {
+export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audioBlob, answerBlobs, onBack }) => {
     const { updateUser, user } = useUser();
     const [activeTab, setActiveTab] = useState<'overview' | 'transcript'>('overview');
     
@@ -42,8 +43,8 @@ export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audio
     }, []);
 
     useEffect(() => {
-        // If we have an audio blob and missing analysis, start the process
-        if (audioBlob && (!session.audioAnalysis || !session.contentAnalysis)) {
+        // If we have an answer blobs and missing analysis, start the process
+        if (answerBlobs && answerBlobs.length > 0 && (!session.audioAnalysis || !session.contentAnalysis)) {
             runAnalysis();
         } else if (session.audioAnalysis && session.contentAnalysis) {
              setProgress({
@@ -52,10 +53,10 @@ export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audio
                  content: 'success'
              });
         }
-    }, [audioBlob, session]);
+    }, [answerBlobs, session]);
 
     const runAnalysis = async () => {
-        if (!audioBlob) return;
+        if (!answerBlobs || answerBlobs.length === 0) return;
         setGlobalError(null);
 
         // --- Step 1 & 2: Audio Analysis (Transcript + Audio Stats) ---
@@ -70,15 +71,11 @@ export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audio
                     ? session.questionsList 
                     : Array(session.questionCount).fill("Unknown Question");
 
-                const audioResult = await analyzeInterviewAudio(audioBlob, questionsList);
+                // Pass the array of answer blobs instead of single blob
+                const audioResult = await analyzeInterviewAudio(answerBlobs, questionsList);
                 
-                // Construct Transcript Items
-                const transcript: TranscriptItem[] = [];
-                audioResult.transcriptAnswers.forEach((ans, i) => {
-                    const questionText = session.questionsList?.[i] || `Question ${i + 1}`;
-                    transcript.push({ role: 'AI', text: questionText }); 
-                    transcript.push({ role: 'User', text: ans });
-                });
+                // Get the structured transcript directly from the result
+                const transcript = audioResult.transcript;
 
                 // Update session locally and context
                 const updatedSession = { 
@@ -214,7 +211,7 @@ export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audio
                         <Button variant="outline" className="flex-1" onClick={onBack} disabled={isProcessing}>
                             Back to List
                         </Button>
-                        {hasError && audioBlob && (
+                        {hasError && answerBlobs && (
                             <Button className="flex-1" onClick={runAnalysis}>
                                 Retry Analysis
                             </Button>
@@ -336,9 +333,28 @@ export const SessionAnalysis: React.FC<SessionAnalysisProps> = ({ session, audio
                                                 {item.score}/100
                                             </span>
                                         </div>
-                                        <p className="text-sm text-zinc-500 italic mb-3">"{item.question}"</p>
+                                        <p className="text-sm text-zinc-500 italic mb-4">"{item.question}"</p>
                                         
-                                        <div className="bg-zinc-50 p-4 rounded-lg space-y-3">
+                                        {/* Individual Audio Player for this answer */}
+                                        {answerBlobs && answerBlobs[idx] && (
+                                            <div className="mb-4 bg-zinc-50 rounded-lg p-2 border border-zinc-100">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                     <Mic size={12} className="text-zinc-400" />
+                                                     <span className="text-xs font-medium text-zinc-500">Your Answer Recording</span>
+                                                </div>
+                                                <audio 
+                                                    controls 
+                                                    src={URL.createObjectURL(answerBlobs[idx])} 
+                                                    className="w-full h-8" 
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div className="bg-zinc-50 p-4 rounded-lg space-y-4">
+                                            <div>
+                                                <span className="text-xs font-semibold text-zinc-400 uppercase">Your Answer (Transcript)</span>
+                                                <p className="text-sm text-zinc-800 mt-1">{item.userAnswer}</p>
+                                            </div>
                                             <div>
                                                 <span className="text-xs font-semibold text-zinc-400 uppercase">Feedback</span>
                                                 <p className="text-sm text-zinc-700 mt-1">{item.feedback}</p>

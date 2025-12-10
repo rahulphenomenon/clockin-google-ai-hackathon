@@ -7,7 +7,7 @@ import { InterviewSession } from '../../types';
 
 interface ActiveInterviewModalProps {
   onClose: () => void;
-  onComplete: (session: InterviewSession, audioBlob: Blob) => void;
+  onComplete: (session: InterviewSession, fullAudioBlob: Blob, answerBlobs: Blob[]) => void;
 }
 
 type InterviewState = 'setup' | 'preparing' | 'interviewing' | 'completed';
@@ -70,7 +70,8 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
 
   // Recording Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const currentAnswerChunksRef = useRef<Blob[]>([]);
+  const completedAnswerBlobsRef = useRef<Blob[]>([]);
 
   // Optimization Refs
   const audioCache = useRef<{ [key: number]: AudioBuffer }>({});
@@ -84,10 +85,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   useEffect(() => {
     return () => {
       stopAudio();
-      stopRecording();
-      if (userStreamRef.current) {
-        userStreamRef.current.getTracks().forEach(track => track.stop());
-      }
+      stopMediaTracks();
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
@@ -106,6 +104,12 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       }
       aiSourceRef.current = null;
     }
+  };
+
+  const stopMediaTracks = () => {
+     if (userStreamRef.current) {
+        userStreamRef.current.getTracks().forEach(track => track.stop());
+      }
   };
 
   const initAudio = async () => {
@@ -131,10 +135,10 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       source.connect(userAnalyserRef.current);
       
       // Initialize MediaRecorder
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
+            currentAnswerChunksRef.current.push(event.data);
         }
       };
 
@@ -147,15 +151,30 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   };
 
   const startRecording = () => {
+    // Reset chunks for the new answer
+    currentAnswerChunksRef.current = [];
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
         mediaRecorderRef.current.start();
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+  const stopRecording = (): Promise<Blob> => {
+    return new Promise((resolve) => {
+        if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+             // Resolve with empty blob if not recording
+             resolve(new Blob([], { type: 'audio/webm' }));
+             return;
+        }
+
+        // Define the handler for when stop completes
+        mediaRecorderRef.current.onstop = () => {
+            const blob = new Blob(currentAnswerChunksRef.current, { type: 'audio/webm' });
+            currentAnswerChunksRef.current = []; // Clear for next time
+            resolve(blob);
+        };
+        
         mediaRecorderRef.current.stop();
-    }
+    });
   };
 
   const visualize = () => {
@@ -205,7 +224,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
     setCurrentState('preparing');
     setInitializationError(null);
     setLoadingProgress('Initializing audio...');
-    audioChunksRef.current = []; // Reset audio chunks
+    completedAnswerBlobsRef.current = []; // Reset stored answers
     
     try {
       await initAudio();
@@ -262,7 +281,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
 
     setTurn('ai_speaking');
     setCurrentQuestionIndex(index);
-    stopRecording(); // Ensure not recording AI
+    // Note: We don't record while AI speaks
 
     const LOOKAHEAD = 3;
     for (let i = 1; i <= LOOKAHEAD; i++) {
@@ -286,11 +305,13 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         throw new Error("Audio buffer missing");
       }
       
+      // AI finished speaking, now user turn
       setTurn('user_speaking');
-      startRecording(); // Start recording user answer
+      startRecording();
 
     } catch (err) {
       console.error("Audio Playback Error", err);
+      // Fallback: let user speak even if audio failed
       setTurn('user_speaking');
       startRecording();
     }
@@ -315,20 +336,35 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
     });
   };
 
-  const handleFinishAnswer = () => {
-    stopRecording();
+  const handleFinishAnswer = async () => {
+    // 1. Stop Recording
+    const answerBlob = await stopRecording();
+    
+    // 2. Save the blob for this question
+    completedAnswerBlobsRef.current.push(answerBlob);
+
+    // 3. Stop any current audio (safeguard)
     stopAudio();
+
+    // 4. Move to next question
     playQuestion(currentQuestionIndex + 1);
   };
 
-  const handleFinishInterview = () => {
-    stopRecording();
+  const handleFinishInterview = async () => {
+    // Ensure recording is stopped if we forced finish
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+         const lastBlob = await stopRecording();
+         completedAnswerBlobsRef.current.push(lastBlob);
+    }
+    
+    stopMediaTracks();
     stopAudio();
+    
     const endTime = Date.now();
     const durationSec = Math.floor((endTime - startTime) / 1000);
     
-    // Create final audio blob from all chunks
-    const fullAudioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    // Concatenate all answer blobs into one single session file
+    const fullAudioBlob = new Blob(completedAnswerBlobsRef.current, { type: 'audio/webm' });
 
     const session: InterviewSession = {
         id: crypto.randomUUID(),
@@ -338,11 +374,10 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         durationSeconds: durationSec,
         questionCount: questions.length,
         type: interviewType,
-        questionsList: questions // Store the original questions
+        questionsList: questions
     };
 
-    onComplete(session, fullAudioBlob);
-    // Removed onClose() to prevent navigation conflict
+    onComplete(session, fullAudioBlob, completedAnswerBlobsRef.current);
   };
 
   // --- Render Helpers ---

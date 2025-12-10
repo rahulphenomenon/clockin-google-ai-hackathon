@@ -61,10 +61,17 @@ const QUESTIONS_SCHEMA: Schema = {
 const AUDIO_ANALYSIS_SCHEMA: Schema = {
     type: Type.OBJECT,
     properties: {
-        transcriptAnswers: {
+        transcript: {
             type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "The transcribed answers from the user audio, in order matching the questions."
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    role: { type: Type.STRING, enum: ["AI", "User"] },
+                    text: { type: Type.STRING }
+                },
+                required: ["role", "text"]
+            },
+            description: "The full conversation transcript, including the interviewer's questions (AI) and candidate's answers (User)."
         },
         audioAnalysis: {
             type: Type.OBJECT,
@@ -78,7 +85,7 @@ const AUDIO_ANALYSIS_SCHEMA: Schema = {
             required: ["confidenceScore", "clarityScore", "pace", "tone", "feedback"]
         }
     },
-    required: ["transcriptAnswers", "audioAnalysis"]
+    required: ["transcript", "audioAnalysis"]
 };
 
 const CONTENT_ANALYSIS_SCHEMA: Schema = {
@@ -93,12 +100,12 @@ const CONTENT_ANALYSIS_SCHEMA: Schema = {
                 type: Type.OBJECT,
                 properties: {
                     question: { type: Type.STRING },
-                    userAnswer: { type: Type.STRING },
+                    userAnswer: { type: Type.STRING, description: "The VERBATIM answer given by the candidate from the transcript." },
                     score: { type: Type.NUMBER, description: "0-100" },
                     feedback: { type: Type.STRING },
                     improvedAnswer: { type: Type.STRING, description: "An example of a better way to answer this question" }
                 },
-                required: ["question", "score", "feedback", "improvedAnswer"]
+                required: ["question", "userAnswer", "score", "feedback", "improvedAnswer"]
             }
         }
     },
@@ -252,41 +259,52 @@ export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Pr
 }
 
 export async function analyzeInterviewAudio(
-    audioBlob: Blob, 
+    answerBlobs: Blob[], 
     questions: string[]
-): Promise<{ transcriptAnswers: string[], audioAnalysis: AudioAnalysis }> {
+): Promise<{ transcript: TranscriptItem[], audioAnalysis: AudioAnalysis }> {
     try {
-        const base64Audio = await blobToBase64(audioBlob);
-        
-        const prompt = `
-            You are an expert interview coach.
-            I have an audio recording of a candidate answering the following interview questions in order:
-            
-            ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+        // Convert all blobs to base64
+        const audioParts = await Promise.all(answerBlobs.map(async (blob) => ({
+            inlineData: {
+                mimeType: blob.type || 'audio/webm',
+                data: await blobToBase64(blob)
+            }
+        })));
 
-            Your task:
-            1. Transcribe the user's answers. Map them sequentially to the questions above. If an answer seems missing, leave it as an empty string.
-            2. Analyze the AUDIO characteristics of the candidate's speech. Ignore the content quality for now, focus on:
-               - Confidence (Are they shaky, stuttering, or firm?)
-               - Clarity (Enunciation, filler words like um/uh)
-               - Pace (Too fast, too slow, good)
-               - Tone (Monotone, enthusiastic, professional)
+        // Construct interleaved parts: Text(Q1) -> Audio(A1) -> Text(Q2) -> Audio(A2)...
+        const parts: any[] = [];
+        
+        parts.push({ text: `
+            You are an expert interview coach and transcriber.
+            I will provide a series of audio files, each corresponding to the candidate's answer to a specific interview question.
             
-            Return a JSON object.
-        `;
+            Your task:
+            1. Transcribe the candidate's answers from the provided audio files VERBATIM. 
+            2. Reconstruct the FULL conversation transcript.
+               - Insert the Question (Role: AI) from the text I provide.
+               - Followed by the Answer (Role: User) transcribed from the corresponding audio file.
+            3. Analyze the AUDIO characteristics (Confidence, Clarity, Pace, Tone).
+            
+            The structure of the inputs below is [Question Text] followed by [Candidate Answer Audio].
+        `});
+
+        questions.forEach((question, index) => {
+            parts.push({ text: `Question ${index + 1}: ${question}` });
+            
+            if (audioParts[index]) {
+                parts.push({ text: `Answer ${index + 1} Audio:` });
+                parts.push(audioParts[index]);
+            } else {
+                parts.push({ text: `Answer ${index + 1}: [No Audio Recorded]` });
+            }
+        });
+        
+        parts.push({ text: "Return a JSON object matching the schema." });
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
-                parts: [
-                    {
-                        inlineData: {
-                            mimeType: 'audio/webm', // MediaRecorder usually outputs webm
-                            data: base64Audio
-                        }
-                    },
-                    { text: prompt }
-                ]
+                parts: parts
             },
             config: {
                 responseMimeType: 'application/json',
@@ -324,7 +342,10 @@ export async function analyzeInterviewContent(
         4. Structure: Was the answer logical and easy to follow?
 
         Provide a structured JSON evaluation.
-        For each question-answer pair found in the transcript, provide specific feedback and an improved version of the answer.
+        For each question-answer pair found in the transcript:
+        1. 'userAnswer': Copy the candidate's answer VERBATIM from the transcript. Do not summarize or edit it. This field must reflect exactly what the user said.
+        2. 'feedback': Provide specific feedback.
+        3. 'improvedAnswer': specific example of a better way to answer this question.
     `;
 
     try {

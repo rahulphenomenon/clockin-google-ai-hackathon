@@ -13,6 +13,7 @@ export const InterviewPrep: React.FC = () => {
   const [view, setView] = useState<ViewMode>('list');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [lastAudioBlob, setLastAudioBlob] = useState<Blob | undefined>(undefined);
+  const [lastAnswerBlobs, setLastAnswerBlobs] = useState<Blob[] | undefined>(undefined);
 
   const sessions = user?.interviewSessions || [];
 
@@ -20,12 +21,13 @@ export const InterviewPrep: React.FC = () => {
       setView('active_interview');
   };
 
-  const handleCompleteInterview = (newSession: InterviewSession, audioBlob: Blob) => {
+  const handleCompleteInterview = (newSession: InterviewSession, fullAudioBlob: Blob, answerBlobs: Blob[]) => {
       const updatedSessions = [newSession, ...sessions];
       updateUser({ interviewSessions: updatedSessions });
       
       // Navigate directly to analysis for the new session
-      setLastAudioBlob(audioBlob);
+      setLastAudioBlob(fullAudioBlob);
+      setLastAnswerBlobs(answerBlobs);
       setSelectedSessionId(newSession.id);
       setView('analysis');
   };
@@ -33,6 +35,7 @@ export const InterviewPrep: React.FC = () => {
   const handleViewAnalysis = (sessionId: string) => {
       setSelectedSessionId(sessionId);
       setLastAudioBlob(undefined); // No audio blob for past sessions (unless we persisted it, which we don't for now)
+      setLastAnswerBlobs(undefined);
       setView('analysis');
   };
 
@@ -40,6 +43,7 @@ export const InterviewPrep: React.FC = () => {
       setView('list');
       setSelectedSessionId(null);
       setLastAudioBlob(undefined);
+      setLastAnswerBlobs(undefined);
   };
 
   // --- Render Views ---
@@ -59,7 +63,8 @@ export const InterviewPrep: React.FC = () => {
           return (
               <SessionAnalysis 
                 session={session} 
-                audioBlob={lastAudioBlob} 
+                audioBlob={lastAudioBlob}
+                answerBlobs={lastAnswerBlobs}
                 onBack={handleBackToList} 
               />
           );
