@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
-import { ResumeAnalysis } from "../types";
+import { ResumeAnalysis, AudioAnalysis, ContentAnalysis, TranscriptItem } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -57,6 +57,68 @@ const QUESTIONS_SCHEMA: Schema = {
   },
   required: ["questions", "type"]
 };
+
+const AUDIO_ANALYSIS_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        transcriptAnswers: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "The transcribed answers from the user audio, in order matching the questions."
+        },
+        audioAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+                confidenceScore: { type: Type.NUMBER, description: "0-100 score on vocal confidence" },
+                clarityScore: { type: Type.NUMBER, description: "0-100 score on speech clarity" },
+                pace: { type: Type.STRING, description: "Description of speech pace (e.g., Fast, Slow, Moderate)" },
+                tone: { type: Type.STRING, description: "Description of tone (e.g., Monotone, Enthusiastic, Nervous)" },
+                feedback: { type: Type.STRING, description: "General feedback on the audio characteristics" }
+            },
+            required: ["confidenceScore", "clarityScore", "pace", "tone", "feedback"]
+        }
+    },
+    required: ["transcriptAnswers", "audioAnalysis"]
+};
+
+const CONTENT_ANALYSIS_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        overallScore: { type: Type.NUMBER, description: "Overall content score 0-100" },
+        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+        improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+        questionFeedback: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    question: { type: Type.STRING },
+                    userAnswer: { type: Type.STRING },
+                    score: { type: Type.NUMBER, description: "0-100" },
+                    feedback: { type: Type.STRING },
+                    improvedAnswer: { type: Type.STRING, description: "An example of a better way to answer this question" }
+                },
+                required: ["question", "score", "feedback", "improvedAnswer"]
+            }
+        }
+    },
+    required: ["overallScore", "strengths", "improvements", "questionFeedback"]
+};
+
+// Helper to convert Blob to Base64
+async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const result = reader.result as string;
+            // Remove data url prefix
+            const base64 = result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
 
 export async function analyzeResume(base64Data: string, targetRoles: string[]): Promise<ResumeAnalysis> {
   // Strip the data URL prefix if present (e.g., "data:application/pdf;base64,")
@@ -117,20 +179,25 @@ export async function generateInterviewQuestions(
     company: string,
     description: string,
     durationMinutes: number,
-    context: string
+    context: string,
+    candidateName: string
 ): Promise<{ questions: string[]; type: 'Behavioral' | 'Technical' | 'Mixed' }> {
     
     // Estimate question count: ~2-3 mins per question + intro/outro
     const questionCount = Math.max(3, Math.floor(durationMinutes / 2.5));
 
     const prompt = `
-        Act as a hiring manager for a ${role} position${company ? ` at ${company}` : ''}.
+        You are a hiring manager interviewing a candidate named ${candidateName} for a ${role} position${company ? ` at ${company}` : ''}.
         ${description ? `Job Description: ${description}` : ''}
         ${context ? `Additional Context: ${context}` : ''}
 
         Create a list of ${questionCount} interview questions for a ${durationMinutes} minute interview.
-        Include a mix of introductory, behavioral, and technical questions appropriate for the role.
-        Start with "Tell me about yourself" and end with "Do you have any questions for us?".
+        Ensure all the questions are written in first perspective as the interviewer. Direct the questions to the candidate using "you" and "your", 
+        do not frame questions from the perspective of the candidate (e.g. do NOT ask "Tell me about myself", it should be "tell me about yourself").
+        Feel free to address the candidate by name (${candidateName}) in the first question (introduction) to make it personal.
+
+        Include a mix of introductory, behavioral, and technical questions appropriate for the role. Follow a traditional interview format given the context, which typically starts with an introduction, asks users about 
+        concepts or situations relevant to the role and company, and ends with asking the candidate if they have any questions.
         
         Return JSON with the list of questions and the overall type of interview.
     `;
@@ -155,13 +222,14 @@ export async function generateInterviewQuestions(
 }
 
 export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Promise<string> {
-    const voiceName = voice === 'Male' ? 'Puck' : 'Kore';
+    const voiceName = voice === 'Male' ? 'Puck' : 'Aoede';
     
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-preview-tts',
             contents: [{
-                parts: [{ text: text }]
+                // Using a direct prompt to ensure verbatim reading instead of systemInstruction
+                parts: [{ text: `You are an interviewer interviewing a candidate. Ask/Say this in a professional and polite tone: ${text}` }]
             }],
             config: {
                 responseModalities: [Modality.AUDIO],
@@ -180,5 +248,101 @@ export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Pr
     } catch (error) {
         console.error("Gemini TTS Error:", error);
         throw new Error("Failed to generate speech. Please try again.");
+    }
+}
+
+export async function analyzeInterviewAudio(
+    audioBlob: Blob, 
+    questions: string[]
+): Promise<{ transcriptAnswers: string[], audioAnalysis: AudioAnalysis }> {
+    try {
+        const base64Audio = await blobToBase64(audioBlob);
+        
+        const prompt = `
+            You are an expert interview coach.
+            I have an audio recording of a candidate answering the following interview questions in order:
+            
+            ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+            Your task:
+            1. Transcribe the user's answers. Map them sequentially to the questions above. If an answer seems missing, leave it as an empty string.
+            2. Analyze the AUDIO characteristics of the candidate's speech. Ignore the content quality for now, focus on:
+               - Confidence (Are they shaky, stuttering, or firm?)
+               - Clarity (Enunciation, filler words like um/uh)
+               - Pace (Too fast, too slow, good)
+               - Tone (Monotone, enthusiastic, professional)
+            
+            Return a JSON object.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: 'audio/webm', // MediaRecorder usually outputs webm
+                            data: base64Audio
+                        }
+                    },
+                    { text: prompt }
+                ]
+            },
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: AUDIO_ANALYSIS_SCHEMA
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI");
+        
+        return JSON.parse(text);
+
+    } catch (error) {
+        console.error("Audio Analysis Error:", error);
+        throw new Error("Failed to analyze interview audio.");
+    }
+}
+
+export async function analyzeInterviewContent(
+    transcript: TranscriptItem[]
+): Promise<ContentAnalysis> {
+    const conversationText = transcript.map(t => `${t.role}: ${t.text}`).join('\n\n');
+
+    const prompt = `
+        You are an expert technical interviewer and hiring manager.
+        Analyze the following interview transcript for content quality.
+        
+        TRANSCRIPT:
+        ${conversationText}
+
+        Evaluation Criteria:
+        1. Relevance: Did they answer the specific question asked?
+        2. Depth: Did they provide specific examples (STAR method)?
+        3. Technical Accuracy: For technical questions, were they correct?
+        4. Structure: Was the answer logical and easy to follow?
+
+        Provide a structured JSON evaluation.
+        For each question-answer pair found in the transcript, provide specific feedback and an improved version of the answer.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: CONTENT_ANALYSIS_SCHEMA
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI");
+        
+        return JSON.parse(text);
+    } catch (error) {
+        console.error("Content Analysis Error:", error);
+        throw new Error("Failed to analyze interview content.");
     }
 }

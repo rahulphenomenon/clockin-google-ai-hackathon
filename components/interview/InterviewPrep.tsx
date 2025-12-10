@@ -1,21 +1,72 @@
 import React, { useState } from 'react';
-import { Video, Plus, Calendar, Clock, MessageSquare, ChevronRight, PlayCircle } from 'lucide-react';
+import { Video, Plus, Calendar, Clock, MessageSquare, ChevronRight, PlayCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUser } from '../../context/UserContext';
 import { ActiveInterviewModal } from './ActiveInterviewModal';
+import { SessionAnalysis } from './SessionAnalysis';
 import { InterviewSession } from '../../types';
+
+type ViewMode = 'list' | 'active_interview' | 'analysis';
 
 export const InterviewPrep: React.FC = () => {
   const { user, updateUser } = useUser();
-  const [showNewInterviewModal, setShowNewInterviewModal] = useState(false);
+  const [view, setView] = useState<ViewMode>('list');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [lastAudioBlob, setLastAudioBlob] = useState<Blob | undefined>(undefined);
 
   const sessions = user?.interviewSessions || [];
 
-  const handleCompleteInterview = (newSession: InterviewSession) => {
-      const updatedSessions = [newSession, ...sessions];
-      updateUser({ interviewSessions: updatedSessions });
+  const handleStartInterview = () => {
+      setView('active_interview');
   };
 
+  const handleCompleteInterview = (newSession: InterviewSession, audioBlob: Blob) => {
+      const updatedSessions = [newSession, ...sessions];
+      updateUser({ interviewSessions: updatedSessions });
+      
+      // Navigate directly to analysis for the new session
+      setLastAudioBlob(audioBlob);
+      setSelectedSessionId(newSession.id);
+      setView('analysis');
+  };
+
+  const handleViewAnalysis = (sessionId: string) => {
+      setSelectedSessionId(sessionId);
+      setLastAudioBlob(undefined); // No audio blob for past sessions (unless we persisted it, which we don't for now)
+      setView('analysis');
+  };
+
+  const handleBackToList = () => {
+      setView('list');
+      setSelectedSessionId(null);
+      setLastAudioBlob(undefined);
+  };
+
+  // --- Render Views ---
+
+  if (view === 'active_interview') {
+      return (
+          <ActiveInterviewModal 
+            onClose={handleBackToList} 
+            onComplete={handleCompleteInterview}
+          />
+      );
+  }
+
+  if (view === 'analysis' && selectedSessionId) {
+      const session = sessions.find(s => s.id === selectedSessionId);
+      if (session) {
+          return (
+              <SessionAnalysis 
+                session={session} 
+                audioBlob={lastAudioBlob} 
+                onBack={handleBackToList} 
+              />
+          );
+      }
+  }
+
+  // Default: List View
   return (
     <div className="max-w-4xl space-y-8 animate-in fade-in duration-500 pb-20">
       
@@ -25,7 +76,7 @@ export const InterviewPrep: React.FC = () => {
           <h2 className="text-4xl font-serif text-zinc-900 mb-2">Interview Prep</h2>
           <p className="text-zinc-500 text-lg">Practice behavioral and technical questions with real-time AI feedback.</p>
         </div>
-        <Button size="lg" onClick={() => setShowNewInterviewModal(true)} className="shrink-0">
+        <Button size="lg" onClick={handleStartInterview} className="shrink-0">
             <Plus className="w-5 h-5 mr-2" /> New Interview
         </Button>
       </div>
@@ -34,7 +85,7 @@ export const InterviewPrep: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div 
             className="h-48 bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between group"
-            onClick={() => setShowNewInterviewModal(true)}
+            onClick={handleStartInterview}
         >
             <div className="flex justify-between items-start">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
@@ -77,12 +128,16 @@ export const InterviewPrep: React.FC = () => {
                   <Video className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
                   <h4 className="text-lg font-medium text-zinc-900 mb-1">No interviews yet</h4>
                   <p className="text-zinc-500 mb-6">Complete your first mock interview to see your history and improvements.</p>
-                  <Button variant="outline" onClick={() => setShowNewInterviewModal(true)}>Start Now</Button>
+                  <Button variant="outline" onClick={handleStartInterview}>Start Now</Button>
               </div>
           ) : (
               <div className="space-y-4">
                   {sessions.map((session) => (
-                      <div key={session.id} className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-zinc-300 transition-colors group">
+                      <div 
+                        key={session.id} 
+                        onClick={() => handleViewAnalysis(session.id)}
+                        className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-zinc-300 transition-colors group cursor-pointer"
+                      >
                           <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center shrink-0">
                               <PlayCircle className="text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                           </div>
@@ -105,27 +160,34 @@ export const InterviewPrep: React.FC = () => {
                               </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                             <span className="px-3 py-1 bg-zinc-100 text-xs font-medium rounded-full text-zinc-600">
+                          <div className="flex items-center gap-4">
+                             {session.audioAnalysis ? (
+                                <div className="hidden md:block text-right">
+                                    <span className="block text-xs text-zinc-400 uppercase">Score</span>
+                                    <span className="font-serif text-xl">
+                                        {Math.round((session.audioAnalysis.confidenceScore + session.audioAnalysis.clarityScore + (session.contentAnalysis?.overallScore || 0)) / 3)}
+                                    </span>
+                                </div>
+                             ) : (
+                                <span className="flex items-center gap-2 text-xs bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-full font-medium">
+                                    Pending Analysis
+                                </span>
+                             )}
+
+                             <span className="px-3 py-1 bg-zinc-100 text-xs font-medium rounded-full text-zinc-600 hidden sm:inline-block">
                                  {session.type}
                              </span>
-                             <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-900">
-                                 Details <ChevronRight size={16} className="ml-1" />
-                             </Button>
+                             <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-900 transition-colors" />
                           </div>
                       </div>
                   ))}
               </div>
           )}
       </div>
-
-      {/* Modal */}
-      {showNewInterviewModal && (
-          <ActiveInterviewModal 
-            onClose={() => setShowNewInterviewModal(false)} 
-            onComplete={handleCompleteInterview}
-          />
-      )}
+      
+      <div className="fixed bottom-0 left-64 right-0 bg-zinc-900 text-white py-3 px-6 text-center text-sm z-40 transform translate-y-full animate-in slide-in-from-bottom-full duration-1000 delay-500 fill-mode-forwards">
+         🚀 Audio, video, and live session feedback are coming soon!
+      </div>
 
     </div>
   );

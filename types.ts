@@ -36,6 +36,35 @@ export interface ResumeAnalysis {
   }[];
 }
 
+export interface TranscriptItem {
+  role: 'AI' | 'User';
+  text: string;
+  timestamp?: string;
+}
+
+export interface AudioAnalysis {
+  confidenceScore: number;
+  clarityScore: number;
+  pace: string;
+  tone: string;
+  feedback: string;
+}
+
+export interface QuestionFeedback {
+  question: string;
+  userAnswer: string;
+  score: number;
+  feedback: string;
+  improvedAnswer: string;
+}
+
+export interface ContentAnalysis {
+  overallScore: number;
+  strengths: string[];
+  improvements: string[];
+  questionFeedback: QuestionFeedback[];
+}
+
 export interface InterviewSession {
   id: string;
   role: string;
@@ -44,6 +73,10 @@ export interface InterviewSession {
   durationSeconds: number;
   questionCount: number;
   type: 'Behavioral' | 'Technical' | 'Mixed';
+  questionsList?: string[]; // Added to store original questions
+  transcript?: TranscriptItem[];
+  audioAnalysis?: AudioAnalysis;
+  contentAnalysis?: ContentAnalysis;
 }
 
 export interface UserProfile {

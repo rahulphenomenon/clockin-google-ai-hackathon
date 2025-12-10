@@ -7,7 +7,7 @@ import { InterviewSession } from '../../types';
 
 interface ActiveInterviewModalProps {
   onClose: () => void;
-  onComplete: (session: InterviewSession) => void;
+  onComplete: (session: InterviewSession, audioBlob: Blob) => void;
 }
 
 type InterviewState = 'setup' | 'preparing' | 'interviewing' | 'completed';
@@ -68,6 +68,10 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   const userAnalyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(0);
 
+  // Recording Refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   // Optimization Refs
   const audioCache = useRef<{ [key: number]: AudioBuffer }>({});
   const prefetchInProgress = useRef<Set<number>>(new Set());
@@ -80,6 +84,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   useEffect(() => {
     return () => {
       stopAudio();
+      stopRecording();
       if (userStreamRef.current) {
         userStreamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -125,11 +130,31 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(userAnalyserRef.current);
       
+      // Initialize MediaRecorder
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+        }
+      };
+
       // Start Visualizer Loop
       visualize();
     } catch (err) {
       console.error("Microphone access denied:", err);
       // We don't block here, just warn, but usually mic is required
+    }
+  };
+
+  const startRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
+        mediaRecorderRef.current.start();
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
     }
   };
 
@@ -169,8 +194,8 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       }
     } catch (err) {
       console.error(`Failed to prefetch audio for q ${index}`, err);
-      // We don't rethrow here to avoid crashing background prefetching
-      // But for the first question, we check the cache explicitly
+      // If this is the first question, we want to propagate the error
+      if (index === 0) throw err;
     } finally {
       prefetchInProgress.current.delete(index);
     }
@@ -180,12 +205,16 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
     setCurrentState('preparing');
     setInitializationError(null);
     setLoadingProgress('Initializing audio...');
+    audioChunksRef.current = []; // Reset audio chunks
     
     try {
       await initAudio();
       
       setLoadingProgress('Generating interview questions...');
-      const result = await generateInterviewQuestions(role, company, jobDescription, duration, context);
+      // Pass candidate name
+      const candidateName = user?.name ? user.name.split(' ')[0] : "Candidate";
+      const result = await generateInterviewQuestions(role, company, jobDescription, duration, context, candidateName);
+      
       setQuestions(result.questions);
       setInterviewType(result.type);
       
@@ -193,18 +222,22 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         throw new Error("Failed to generate questions.");
       }
 
-      // Optimization: Prefetch audio for the first question strictly
       setLoadingProgress('Preparing interviewer voice...');
       
-      // We wait for the first one explicitly
-      await prefetchAudio(0, result.questions[0]);
+      // Add a timeout race to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Voice generation timed out. Please check your connection and try again.")), 20000)
+      );
+
+      await Promise.race([
+        prefetchAudio(0, result.questions[0]),
+        timeoutPromise
+      ]);
       
-      // Verify first audio exists
       if (!audioCache.current[0]) {
-        throw new Error("Failed to load audio for the first question. Please try again.");
+        throw new Error("Failed to load audio for the first question.");
       }
 
-      // Trigger background prefetch for next ones (non-blocking)
       const initialFetchCount = Math.min(3, result.questions.length);
       for (let i = 1; i < initialFetchCount; i++) {
         prefetchAudio(i, result.questions[i]);
@@ -213,7 +246,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       setCurrentState('interviewing');
       setStartTime(Date.now());
       
-      // Start first question after short delay
       setTimeout(() => playQuestion(0, result.questions), 500);
 
     } catch (err) {
@@ -230,22 +262,19 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
 
     setTurn('ai_speaking');
     setCurrentQuestionIndex(index);
+    stopRecording(); // Ensure not recording AI
 
-    // Background Optimization: Trigger prefetch for next 3 questions
     const LOOKAHEAD = 3;
     for (let i = 1; i <= LOOKAHEAD; i++) {
         const nextIdx = index + i;
         if (nextIdx < qList.length) {
-            // Fire and forget background fetch
             prefetchAudio(nextIdx, qList[nextIdx]);
         }
     }
 
     try {
-      // Check cache first
       let buffer = audioCache.current[index];
       
-      // If not in cache, fetch immediately (blocking)
       if (!buffer) {
         await prefetchAudio(index, qList[index]);
         buffer = audioCache.current[index];
@@ -258,21 +287,22 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       }
       
       setTurn('user_speaking');
+      startRecording(); // Start recording user answer
+
     } catch (err) {
       console.error("Audio Playback Error", err);
-      // If audio fails, move to user turn so interview isn't stuck
       setTurn('user_speaking');
+      startRecording();
     }
   };
 
   const playAudioBuffer = async (buffer: AudioBuffer) => {
     if (!audioContextRef.current || !aiAnalyserRef.current) return;
 
-    // Play
     const source = audioContextRef.current.createBufferSource();
     source.buffer = buffer;
-    source.connect(aiAnalyserRef.current); // Connect to visualizer
-    aiAnalyserRef.current.connect(audioContextRef.current.destination); // Connect to speakers
+    source.connect(aiAnalyserRef.current);
+    aiAnalyserRef.current.connect(audioContextRef.current.destination);
     
     aiSourceRef.current = source;
     source.start(0);
@@ -286,15 +316,20 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   };
 
   const handleFinishAnswer = () => {
-    stopAudio(); // Stop AI if speaking (interrupt)
+    stopRecording();
+    stopAudio();
     playQuestion(currentQuestionIndex + 1);
   };
 
   const handleFinishInterview = () => {
+    stopRecording();
     stopAudio();
     const endTime = Date.now();
     const durationSec = Math.floor((endTime - startTime) / 1000);
     
+    // Create final audio blob from all chunks
+    const fullAudioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
     const session: InterviewSession = {
         id: crypto.randomUUID(),
         role,
@@ -302,16 +337,16 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         date: new Date().toISOString(),
         durationSeconds: durationSec,
         questionCount: questions.length,
-        type: interviewType
+        type: interviewType,
+        questionsList: questions // Store the original questions
     };
 
-    onComplete(session);
-    onClose();
+    onComplete(session, fullAudioBlob);
+    // Removed onClose() to prevent navigation conflict
   };
 
   // --- Render Helpers ---
 
-  // Pulse animation based on volume (0-255)
   const getScale = (vol: number) => 1 + (vol / 255) * 0.5;
 
   if (currentState === 'setup') {
@@ -378,7 +413,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                 <textarea 
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
-                    placeholder="Describe whether this is the first interview, second, technical round, behavioural, etc. Enter details you know about the person who is interviewing you."
+                    placeholder="Enter details you know about the person who is interviewing you..."
                     className="w-full min-h-[80px] px-3 py-2 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                 />
              </div>
@@ -443,6 +478,13 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                  <h2 className="text-2xl font-serif">Preparing your interview...</h2>
                  <p className="text-zinc-400">{loadingProgress || "Reviewing your profile..."}</p>
              </div>
+             <Button 
+                variant="outline" 
+                onClick={onClose} 
+                className="mt-8 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800"
+             >
+                Cancel
+             </Button>
         </div>
     );
   }
@@ -452,12 +494,17 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
     <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col animate-in fade-in duration-500">
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 bg-zinc-900/50 backdrop-blur border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                <span className="text-zinc-200 font-medium tracking-wide">REC</span>
-                <span className="text-zinc-500 text-sm ml-2 border-l border-zinc-700 pl-3">
-                    {role} {company ? `@ ${company}` : ''}
-                </span>
+            <div className="flex items-center gap-4">
+                 <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors" title="Discard Session">
+                    <X size={24} />
+                 </button>
+                 <div className="flex items-center gap-3 border-l border-zinc-700 pl-4">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span className="text-zinc-200 font-medium tracking-wide">REC</span>
+                    <span className="text-zinc-500 text-sm ml-2 hidden sm:inline-block">
+                        {role} {company ? `@ ${company}` : ''}
+                    </span>
+                 </div>
             </div>
             <Button variant="secondary" size="sm" onClick={handleFinishInterview} className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border-zinc-700">
                 End Interview
@@ -511,26 +558,28 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         </div>
 
         {/* Controls / Footer */}
-        <div className="h-32 bg-zinc-900 border-t border-zinc-800 flex flex-col items-center justify-center gap-4 pb-4">
-             <div className="text-zinc-400 text-sm max-w-2xl text-center px-4 line-clamp-2 min-h-[40px] flex items-center">
-                 {turn === 'ai_speaking' 
-                    ? "Listening to interviewer..."
-                    : `Question ${currentQuestionIndex + 1} of ${questions.length}: ${questions[currentQuestionIndex]}`
-                 }
+        <div className="h-40 bg-zinc-900 border-t border-zinc-800 flex flex-col items-center justify-center gap-4 pb-4 px-6">
+             <div className="w-full max-w-3xl h-16 overflow-y-auto rounded-lg bg-zinc-900/50 p-2 text-center flex items-center justify-center">
+                 <p className="text-zinc-300 text-lg leading-relaxed">
+                     {turn === 'ai_speaking' 
+                        ? <span className="text-zinc-500 animate-pulse italic">Listening to interviewer...</span>
+                        : questions[currentQuestionIndex]
+                     }
+                 </p>
              </div>
 
              <div className="flex gap-4">
                  {turn === 'user_speaking' && (
                      <Button 
                         size="lg" 
-                        className="bg-red-600 hover:bg-red-700 text-white px-8 rounded-full animate-pulse"
+                        className="bg-red-600 hover:bg-red-700 text-white px-8 rounded-full animate-pulse shadow-lg shadow-red-900/20"
                         onClick={handleFinishAnswer}
                      >
                         <Square className="w-4 h-4 mr-2 fill-current" /> Finish Answering
                      </Button>
                  )}
                  {turn === 'ai_speaking' && (
-                     <Button size="lg" variant="secondary" className="rounded-full opacity-50 cursor-not-allowed text-zinc-400">
+                     <Button size="lg" variant="secondary" className="rounded-full opacity-50 cursor-not-allowed text-zinc-400 bg-zinc-800 border-zinc-700">
                         <Volume2 className="w-4 h-4 mr-2" /> Interviewer Speaking
                      </Button>
                  )}
