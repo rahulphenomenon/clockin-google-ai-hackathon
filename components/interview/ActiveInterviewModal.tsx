@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Mic, MicOff, Video, Loader2, Play, Square, Settings, Volume2 } from 'lucide-react';
+import { X, Mic, MicOff, Video, Loader2, Play, Square, Settings, Volume2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { generateInterviewQuestions, generateSpeech } from '../../utils/gemini';
 import { useUser } from '../../context/UserContext';
@@ -58,6 +58,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   const [startTime, setStartTime] = useState<number>(0);
   const [interviewType, setInterviewType] = useState<'Behavioral' | 'Technical' | 'Mixed'>('Behavioral');
   const [loadingProgress, setLoadingProgress] = useState('');
+  const [initializationError, setInitializationError] = useState<string | null>(null);
 
   // Audio Refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -128,7 +129,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       visualize();
     } catch (err) {
       console.error("Microphone access denied:", err);
-      alert("Microphone access is required for the interview.");
+      // We don't block here, just warn, but usually mic is required
     }
   };
 
@@ -168,6 +169,8 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       }
     } catch (err) {
       console.error(`Failed to prefetch audio for q ${index}`, err);
+      // We don't rethrow here to avoid crashing background prefetching
+      // But for the first question, we check the cache explicitly
     } finally {
       prefetchInProgress.current.delete(index);
     }
@@ -175,33 +178,47 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
 
   const handleStart = async () => {
     setCurrentState('preparing');
+    setInitializationError(null);
     setLoadingProgress('Initializing audio...');
-    await initAudio();
-
+    
     try {
-      setLoadingProgress('Generating specific interview questions...');
+      await initAudio();
+      
+      setLoadingProgress('Generating interview questions...');
       const result = await generateInterviewQuestions(role, company, jobDescription, duration, context);
       setQuestions(result.questions);
       setInterviewType(result.type);
       
-      // Optimization: Prefetch audio for the first 3 questions
-      setLoadingProgress('Generating audio for questions...');
+      if (!result.questions || result.questions.length === 0) {
+        throw new Error("Failed to generate questions.");
+      }
+
+      // Optimization: Prefetch audio for the first question strictly
+      setLoadingProgress('Preparing interviewer voice...');
+      
+      // We wait for the first one explicitly
+      await prefetchAudio(0, result.questions[0]);
+      
+      // Verify first audio exists
+      if (!audioCache.current[0]) {
+        throw new Error("Failed to load audio for the first question. Please try again.");
+      }
+
+      // Trigger background prefetch for next ones (non-blocking)
       const initialFetchCount = Math.min(3, result.questions.length);
-      const prefetchPromises = result.questions
-        .slice(0, initialFetchCount)
-        .map((q, i) => prefetchAudio(i, q));
-        
-      await Promise.all(prefetchPromises);
+      for (let i = 1; i < initialFetchCount; i++) {
+        prefetchAudio(i, result.questions[i]);
+      }
 
       setCurrentState('interviewing');
       setStartTime(Date.now());
       
       // Start first question after short delay
       setTimeout(() => playQuestion(0, result.questions), 500);
+
     } catch (err) {
       console.error(err);
-      alert("Failed to start interview. Please try again.");
-      setCurrentState('setup');
+      setInitializationError(err instanceof Error ? err.message : "An unexpected error occurred.");
     }
   };
 
@@ -237,13 +254,13 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       if (buffer) {
         await playAudioBuffer(buffer);
       } else {
-        throw new Error("Failed to load audio");
+        throw new Error("Audio buffer missing");
       }
       
       setTurn('user_speaking');
     } catch (err) {
       console.error("Audio Playback Error", err);
-      // If audio fails, just move to user turn so interview isn't stuck
+      // If audio fails, move to user turn so interview isn't stuck
       setTurn('user_speaking');
     }
   };
@@ -391,6 +408,29 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   }
 
   if (currentState === 'preparing') {
+    if (initializationError) {
+        return (
+            <div className="fixed inset-0 z-50 bg-zinc-900 flex flex-col items-center justify-center text-white space-y-6 animate-in fade-in">
+                 <div className="text-center space-y-4 max-w-md px-6">
+                     <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                        <AlertCircle size={32} />
+                     </div>
+                     <h2 className="text-2xl font-serif">Something went wrong</h2>
+                     <p className="text-zinc-400">{initializationError}</p>
+                     
+                     <div className="flex gap-3 justify-center pt-4">
+                        <Button variant="outline" onClick={onClose} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleStart} className="bg-white text-zinc-900 hover:bg-zinc-200">
+                            Retry
+                        </Button>
+                     </div>
+                 </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 z-50 bg-zinc-900 flex flex-col items-center justify-center text-white space-y-6 animate-in fade-in">
              <div className="relative">

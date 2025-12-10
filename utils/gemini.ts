@@ -160,9 +160,9 @@ export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Pr
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-preview-tts',
-            contents: {
+            contents: [{
                 parts: [{ text: text }]
-            },
+            }],
             config: {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: {
@@ -174,11 +174,11 @@ export async function generateSpeech(text: string, voice: 'Male' | 'Female'): Pr
         });
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Audio) throw new Error("No audio data returned");
+        if (!base64Audio) throw new Error("No audio data returned from Gemini TTS");
         
         return base64Audio;
     } catch (error) {
         console.error("Gemini TTS Error:", error);
-        throw new Error("Failed to generate speech.");
+        throw new Error("Failed to generate speech. Please try again.");
     }
 }
