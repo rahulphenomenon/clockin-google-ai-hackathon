@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mic, MicOff, Video, Loader2, Play, Square, Settings, Volume2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -48,7 +49,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   const [jobDescription, setJobDescription] = useState('');
   const [duration, setDuration] = useState(10);
   const [context, setContext] = useState('');
-  const [voice, setVoice] = useState<'Male' | 'Female'>('Female');
 
   // Interview Logic State
   const [currentState, setCurrentState] = useState<InterviewState>('setup');
@@ -206,7 +206,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
     
     prefetchInProgress.current.add(index);
     try {
-      const base64 = await generateSpeech(text, voice);
+      const base64 = await generateSpeech(text);
       if (audioContextRef.current) {
          const buffer = decodePCM(base64, audioContextRef.current);
          audioCache.current[index] = buffer;
@@ -421,7 +421,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Duration (Min)</label>
+                    <label className="text-sm font-medium text-zinc-700">Duration (Minimum)</label>
                     <input 
                         type="number"
                         min={1}
@@ -451,20 +451,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                     placeholder="Enter details you know about the person who is interviewing you..."
                     className="w-full min-h-[80px] px-3 py-2 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                 />
-             </div>
-
-             <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700">Interviewer Voice</label>
-                <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={voice === 'Male'} onChange={() => setVoice('Male')} className="accent-zinc-900" />
-                        <span className="text-sm text-zinc-600">Male</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={voice === 'Female'} onChange={() => setVoice('Female')} className="accent-zinc-900" />
-                        <span className="text-sm text-zinc-600">Female</span>
-                    </label>
-                </div>
              </div>
           </div>
 

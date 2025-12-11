@@ -1,3 +1,5 @@
+
+
 import { LucideIcon } from 'lucide-react';
 
 export interface Feature {
@@ -5,14 +7,14 @@ export interface Feature {
   title: string;
   description: string;
   icon: LucideIcon;
-  mockupType: 'resume' | 'interview' | 'mentorship' | 'upskill';
+  mockupType: 'resume' | 'interview' | 'mentorship' | 'upskill' | 'photo-booth' | 'job-match';
 }
 
 export type ViewState = 'landing' | 'onboarding' | 'dashboard';
 
-export type DashboardTab = 'home' | 'resume' | 'interview' | 'mentor' | 'upskill' | 'pipeline';
+export type DashboardTab = 'home' | 'resume' | 'interview' | 'mentor' | 'upskill' | 'pipeline' | 'photo-booth' | 'job-match';
 
-export type JobStatus = 'Watchlist' | 'Applied' | 'Screening' | 'Interviewing' | 'Received Offer' | 'Accepted Offer';
+export type JobStatus = 'Watchlist' | 'Applied' | 'Screening' | 'Interviewing' | 'Received Offer' | 'Rejected' | 'Accepted' ;
 
 export interface Job {
   id: string;
@@ -73,10 +75,54 @@ export interface InterviewSession {
   durationSeconds: number;
   questionCount: number;
   type: 'Behavioral' | 'Technical' | 'Mixed';
-  questionsList?: string[]; // Added to store original questions
+  questionsList?: string[];
   transcript?: TranscriptItem[];
   audioAnalysis?: AudioAnalysis;
   contentAnalysis?: ContentAnalysis;
+}
+
+// --- Upskill Types ---
+
+export interface CoreConcept {
+  id: string;
+  title: string;
+  shortDescription: string;
+  fullContent: string;
+  isRead: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctOptionIndex: number; // 0-based index
+  explanation: string;
+}
+
+export interface QuizSession {
+  id: string;
+  date: string;
+  role: string;
+  company?: string;
+  score: number;
+  totalQuestions: number;
+  questions: QuizQuestion[];
+  userAnswers: number[]; // Store indices of user answers
+}
+
+export interface LearningResource {
+  id: string;
+  title: string;
+  type: 'Book' | 'Course' | 'Video' | 'Article' | 'Podcast' | 'Other';
+  description: string;
+  isCompleted: boolean;
+}
+
+export interface UpskillData {
+  targetRole: string; // The role these resources were generated for
+  coreConcepts: CoreConcept[];
+  resources: LearningResource[];
+  quizSessions: QuizSession[];
 }
 
 export interface UserProfile {
@@ -91,6 +137,7 @@ export interface UserProfile {
   resumeAnalysis?: ResumeAnalysis;
   jobs?: Job[];
   interviewSessions?: InterviewSession[];
+  upskillData?: UpskillData;
 }
 
 export interface UserContextType {

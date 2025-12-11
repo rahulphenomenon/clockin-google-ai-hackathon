@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, 
@@ -13,7 +14,12 @@ import {
   Home,
   CheckCircle2,
   Circle,
-  Layout
+  Layout,
+  Briefcase,
+  Camera,
+  Sparkles,
+  Search,
+  MessageSquare
 } from 'lucide-react';
 import { DashboardTab } from '../types';
 import { Logo } from './Logo';
@@ -22,18 +28,26 @@ import { Button } from './ui/Button';
 import { ResumeOptimizer } from './resume/ResumeOptimizer';
 import { PipelineBoard } from './pipeline/PipelineBoard';
 import { InterviewPrep } from './interview/InterviewPrep';
+import { UpskillTab } from './upskill/UpskillTab';
+import { PhotoBooth } from './photo-booth/PhotoBooth';
+import { BrowserFrame } from './ui/BrowserFrame';
 
 interface DashboardProps {
   onNavigateHome: () => void;
 }
 
-const NAV_ITEMS: { id: DashboardTab; label: string; icon: any }[] = [
+const MAIN_NAV_ITEMS: { id: DashboardTab; label: string; icon: any }[] = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'resume', label: 'Resume', icon: FileText },
   { id: 'pipeline', label: 'Pipeline', icon: Layout },
   { id: 'interview', label: 'Interview Prep', icon: Video },
-  { id: 'mentor', label: 'Mentor Match', icon: Users },
   { id: 'upskill', label: 'Upskill and Learn', icon: GraduationCap },
+  { id: 'photo-booth', label: 'Photo Booth', icon: Camera },
+];
+
+const COMING_SOON_NAV_ITEMS: { id: DashboardTab; label: string; icon: any }[] = [
+  { id: 'job-match', label: 'Job Match', icon: Briefcase },
+  { id: 'mentor', label: 'Mentor Match', icon: Users },
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
@@ -140,57 +154,112 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
         return <ResumeOptimizer />;
       case 'interview':
         return <InterviewPrep />;
+      case 'photo-booth':
+        return <PhotoBooth />;
       case 'mentor':
         return (
-          <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-              <h2 className="text-4xl font-serif text-zinc-900 mb-4">Mentor Match</h2>
-              <p className="text-zinc-500 text-lg">Find guidance from experienced professionals in your field.</p>
+          <div className="max-w-4xl mx-auto h-full flex flex-col justify-center items-center text-center animate-in fade-in pb-20">
+            {/* Graphic */}
+            <div className="relative w-full max-w-lg aspect-video bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden mb-10 flex items-center justify-center shadow-2xl">
+                 {/* Background Grid */}
+                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] opacity-50"></div>
+                 
+                 {/* Ambient Glow */}
+                 <div className="absolute top-1/2 left-1/4 w-32 h-32 bg-purple-500/20 rounded-full blur-[50px]"></div>
+                 <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-blue-500/20 rounded-full blur-[50px]"></div>
+
+                 {/* Connection Visual */}
+                 <div className="relative z-10 flex items-center gap-12 sm:gap-20">
+                     {/* User Node */}
+                     <div className="flex flex-col items-center gap-3">
+                         <div className="w-16 h-16 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center shadow-lg relative">
+                             <User className="text-zinc-400 w-8 h-8" />
+                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-zinc-900"></div>
+                         </div>
+                     </div>
+
+                     {/* Flowing Line */}
+                     <div className="w-24 sm:w-32 h-[2px] bg-zinc-800 relative">
+                          <div className="absolute top-1/2 left-0 w-full h-full bg-gradient-to-r from-transparent via-blue-400 to-transparent -translate-y-1/2 animate-[shimmer_2s_infinite] opacity-70"></div>
+                          {/* Floating Icon */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-zinc-800 rounded-full border border-zinc-700 flex items-center justify-center shadow-lg">
+                              <MessageSquare size={12} className="text-white" />
+                          </div>
+                     </div>
+
+                     {/* Mentor Node */}
+                     <div className="flex flex-col items-center gap-3">
+                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center shadow-lg shadow-indigo-500/10">
+                             <Users className="text-indigo-300 w-8 h-8" />
+                         </div>
+                     </div>
+                 </div>
             </div>
-            <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white border border-zinc-200 rounded-xl p-6 flex gap-6 items-center shadow-sm">
-                        <div className="w-16 h-16 bg-zinc-100 rounded-full shrink-0"></div>
-                        <div className="flex-1 space-y-2">
-                             <div className="h-4 w-48 bg-zinc-100 rounded"></div>
-                             <div className="h-3 w-32 bg-zinc-50 rounded"></div>
-                        </div>
-                        <Button variant="outline" size="sm">Connect</Button>
+
+            <div className="max-w-md space-y-6">
+                 <div className="inline-flex items-center px-4 py-1.5 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600 text-sm font-medium animate-shimmer bg-[linear-gradient(110deg,#f4f4f5,45%,#ffffff,55%,#f4f4f5)] bg-[length:200%_100%] shadow-sm">
+                    Coming Soon
+                 </div>
+                 <div>
+                    <h2 className="text-4xl font-serif text-zinc-900 mb-4">Find your career guide</h2>
+                    <p className="text-zinc-500 text-lg leading-relaxed">
+                        Connect with mentors for application referrals and interview tips.
+                    </p>
+                 </div>
+            </div>
+          </div>
+        );
+      case 'job-match':
+          return (
+            <div className="max-w-4xl mx-auto h-full flex flex-col justify-center items-center text-center animate-in fade-in pb-20">
+                {/* Graphic */}
+                <div className="relative w-full max-w-lg aspect-video bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden mb-10 flex items-center justify-center shadow-2xl">
+                    {/* Background Grid */}
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                    
+                    {/* Central Radar/Hub */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-64 border border-white/5 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                        <div className="absolute w-48 h-48 border border-white/5 rounded-full animate-[spin_8s_linear_infinite_reverse]"></div>
                     </div>
-                ))}
-            </div>
-          </div>
-        );
-      case 'upskill':
-        return (
-          <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
-            <div>
-              <h2 className="text-4xl font-serif text-zinc-900 mb-4">Upskill & Learn</h2>
-              <p className="text-zinc-500 text-lg">Curated learning paths to bridge your skill gaps.</p>
-            </div>
-             <div className="grid grid-cols-1 gap-6">
-                <div className="bg-white border border-zinc-200 rounded-xl p-8">
-                     <div className="flex justify-between items-start mb-6">
-                        <div>
-                             <h3 className="text-xl font-medium mb-1">Recommended Path</h3>
-                             <p className="text-zinc-500 text-sm">Based on your target roles</p>
-                        </div>
-                        <div className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-semibold">AI Generated</div>
-                     </div>
-                     <div className="space-y-4">
-                        {[1, 2, 3].map(i => (
-                             <div key={i} className="flex items-center gap-4 p-3 hover:bg-zinc-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-zinc-100">
-                                 <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-medium">{i}</div>
-                                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                                     <div className="h-full bg-zinc-300 w-1/3"></div>
-                                 </div>
-                             </div>
-                        ))}
-                     </div>
+
+                    {/* Central Node */}
+                    <div className="relative z-20 w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <Search className="text-white w-8 h-8" />
+                    </div>
+
+                    {/* Job Nodes (Flying In) */}
+                    <div className="absolute top-1/4 right-1/4 translate-x-1/2 -translate-y-1/2 bg-zinc-800 p-2 rounded-lg border border-zinc-700 shadow-xl flex items-center gap-2 animate-bounce [animation-duration:3s]">
+                        <div className="w-6 h-6 bg-white/10 rounded"></div>
+                        <div className="h-2 w-16 bg-white/10 rounded-full"></div>
+                        <div className="absolute -top-2 -right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-zinc-800"></div>
+                    </div>
+                    
+                    <div className="absolute bottom-1/3 left-1/4 -translate-x-1/2 translate-y-1/2 bg-zinc-800 p-2 rounded-lg border border-zinc-700 shadow-xl flex items-center gap-2 animate-bounce [animation-duration:4s]">
+                         <div className="w-6 h-6 bg-white/10 rounded"></div>
+                         <div className="h-2 w-12 bg-white/10 rounded-full"></div>
+                         <div className="absolute -top-2 -right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-zinc-800"></div>
+                    </div>
+
+                    {/* Connecting Beams */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 via-transparent to-transparent pointer-events-none"></div>
                 </div>
-             </div>
-          </div>
-        );
+
+                <div className="max-w-xl space-y-6">
+                    <div className="inline-flex items-center px-4 py-1.5 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600 text-sm font-medium animate-shimmer bg-[linear-gradient(110deg,#f4f4f5,45%,#ffffff,55%,#f4f4f5)] bg-[length:200%_100%] shadow-sm">
+                        Coming Soon
+                    </div>
+                    <div>
+                        <h2 className="text-4xl font-serif text-zinc-900 mb-4">Jobs perfect for you</h2>
+                        <p className="text-zinc-500 text-lg leading-relaxed">
+                            A curated feed of jobs that fit your profile and requirements. Apply in one click, AI handles all application formalities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+          );
+      case 'upskill':
+        return <UpskillTab onNavigateToResume={() => setActiveTab('resume')} />;
       case 'home':
         const hasResume = !!user?.resumeData;
         const hasJobs = (user?.jobs?.length || 0) > 0;
@@ -201,7 +270,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
           <div className="max-w-2xl space-y-10 animate-in fade-in duration-500 pb-12">
             <div>
               <h2 className="text-4xl font-serif text-zinc-900 mb-2">
-                Welcome back, {user?.name ? user.name.split(' ')[0] : 'there'}
+                Welcome, {user?.name ? user.name.split(' ')[0] : 'there'}
               </h2>
               <p className="text-zinc-500 text-lg">Let's get you ready for your next big opportunity.</p>
             </div>
@@ -229,7 +298,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                             <span className={`block font-medium ${hasResume ? "text-zinc-900 line-through decoration-zinc-400" : "text-zinc-900"}`}>
                                 Upload Resume
                             </span>
-                            {!hasResume && <p className="text-xs text-zinc-500 mt-0.5">Visit the Resume tab to analyze your CV</p>}
                         </div>
                         {hasResume && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Done</span>}
                     </div>
@@ -362,19 +430,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                     </div>
 
                     {/* Action */}
-                    <div className="pt-4 flex justify-end">
-                        <Button 
-                            onClick={handleSaveProfile} 
-                            disabled={isSaving || !hasChanges} 
-                            className="w-full sm:w-auto"
-                        >
-                            {isSaving ? (
-                                <>Saving...</>
-                            ) : (
-                                <><Save className="mr-2 w-4 h-4" /> Save Changes</>
-                            )}
-                        </Button>
-                    </div>
+                    {hasChanges && (
+                        <div className="pt-4 flex justify-end animate-in fade-in slide-in-from-bottom-2">
+                            <Button 
+                                onClick={handleSaveProfile} 
+                                disabled={isSaving} 
+                                className="w-full sm:w-auto"
+                            >
+                                {isSaving ? (
+                                    <>Saving...</>
+                                ) : (
+                                    <><Save className="mr-2 w-4 h-4" /> Save Changes</>
+                                )}
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 mt-6">
@@ -405,27 +475,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                  ${isActive 
-                    ? 'bg-zinc-900 text-white shadow-md' 
-                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-                  }
-                `}
-              >
-                <Icon size={18} className={isActive ? 'text-zinc-300' : 'text-zinc-400'} />
-                {item.label}
-              </button>
-            );
-          })}
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <div className="space-y-1 mb-6">
+            {MAIN_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
+                    ${isActive 
+                      ? 'bg-zinc-900 text-white shadow-md' 
+                      : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                    }
+                  `}
+                >
+                  <Icon size={18} className={isActive ? 'text-zinc-300' : 'text-zinc-400'} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div>
+            <h3 className="px-3 text-xs font-semibold text-zinc-400/70 uppercase tracking-wider mb-2">Coming Soon</h3>
+            <div className="space-y-1">
+              {COMING_SOON_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
+                      ${isActive 
+                        ? 'bg-zinc-900 text-white shadow-md' 
+                        : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                      }
+                    `}
+                  >
+                    <Icon size={18} className={isActive ? 'text-zinc-300' : 'text-zinc-400'} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </nav>
 
         {/* Bottom Actions */}

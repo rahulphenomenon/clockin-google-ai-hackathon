@@ -20,7 +20,8 @@ const STATUSES: JobStatus[] = [
   'Screening',
   'Interviewing',
   'Received Offer',
-  'Accepted Offer'
+  'Rejected',
+  'Accepted'
 ];
 
 // Helper to ensure links are absolute
