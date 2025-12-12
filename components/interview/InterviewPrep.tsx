@@ -80,7 +80,7 @@ export const InterviewPrep: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-4xl font-serif text-zinc-900 mb-2">Interview Prep</h2>
-          <p className="text-zinc-500 text-lg">Practice behavioral and technical questions with real-time AI feedback.</p>
+          <p className="text-zinc-500 text-lg">Practice interview questions tailored to your target role.</p>
         </div>
         <Button size="lg" onClick={handleStartInterview} className="shrink-0">
             <Plus className="w-5 h-5 mr-2" /> New Interview

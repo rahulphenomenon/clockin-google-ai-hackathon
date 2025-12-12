@@ -298,7 +298,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
       case 'home':
         const hasResume = !!user?.resumeData;
         const hasJobs = (user?.jobs?.length || 0) > 0;
-        const completedCount = (hasResume ? 1 : 0) + (hasJobs ? 1 : 0);
+        const hasInterviews = (user?.interviewSessions?.length || 0) > 0;
+        const hasSkills = (user?.upskillData?.quizSessions?.length || 0) > 0;
+        
+        const completedCount = (hasResume ? 1 : 0) + (hasJobs ? 1 : 0) + (hasInterviews ? 1 : 0) + (hasSkills ? 1 : 0);
         const progress = Math.round((completedCount / 4) * 100);
 
         return (
@@ -339,20 +342,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
 
                     {/* Mock Interview */}
                      <div 
-                         onClick={() => setActiveTab('interview')}
-                         className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 transition-colors group cursor-pointer"
+                         onClick={() => !hasInterviews && setActiveTab('interview')}
+                         className={`flex items-center gap-4 p-3 rounded-lg transition-colors group ${!hasInterviews ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'}`}
                      >
-                        <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
-                        <span className="text-zinc-700 font-medium">Perform one mock interview</span>
+                        {hasInterviews ? (
+                            <CheckCircle2 className="text-green-600 w-6 h-6 shrink-0" />
+                        ) : (
+                            <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        )}
+                        <div className="flex-1">
+                            <span className={`block font-medium ${hasInterviews ? "text-zinc-900 line-through decoration-zinc-400" : "text-zinc-900"}`}>
+                                Perform one mock interview
+                            </span>
+                        </div>
+                        {hasInterviews && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Done</span>}
                     </div>
 
                     {/* Skill Assessment */}
                      <div 
-                         onClick={() => setActiveTab('upskill')}
-                         className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 transition-colors group cursor-pointer"
+                         onClick={() => !hasSkills && setActiveTab('upskill')}
+                         className={`flex items-center gap-4 p-3 rounded-lg transition-colors group ${!hasSkills ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'}`}
                      >
-                        <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
-                        <span className="text-zinc-700 font-medium">Take a skill assessment</span>
+                        {hasSkills ? (
+                            <CheckCircle2 className="text-green-600 w-6 h-6 shrink-0" />
+                        ) : (
+                            <Circle className="text-zinc-300 w-6 h-6 shrink-0 group-hover:text-zinc-400" />
+                        )}
+                        <div className="flex-1">
+                            <span className={`block font-medium ${hasSkills ? "text-zinc-900 line-through decoration-zinc-400" : "text-zinc-900"}`}>
+                                Take a skill assessment
+                            </span>
+                        </div>
+                        {hasSkills && <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">Done</span>}
                     </div>
 
                     {/* Pipeline */}
