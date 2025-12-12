@@ -1,9 +1,11 @@
 
+
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, X, ArrowRight, Loader2, Download, CloudUpload, PenTool, Copy, Check, Sparkles } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, X, ArrowRight, Loader2, Download, CloudUpload, PenTool, Copy, Check, Sparkles, PlusCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUser } from '../../context/UserContext';
 import { analyzeResume, generateCoverLetter } from '../../utils/gemini';
+import { ResumeBuilder } from './ResumeBuilder';
 
 const SAMPLE_JD = `Project Manager — ACME Technologies
 Location: Hybrid (SF / Remote)
@@ -65,7 +67,7 @@ export const ResumeOptimizer: React.FC = () => {
   const { user, updateUser } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [activeTab, setActiveTab] = useState<'analyze' | 'cover_letter'>('analyze');
+  const [activeTab, setActiveTab] = useState<'create' | 'analyze' | 'cover_letter'>('create');
   
   // Analyze Tab State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -572,22 +574,28 @@ export const ResumeOptimizer: React.FC = () => {
       {/* Header & Tabs */}
       <div className="space-y-6">
            <div>
-               <h2 className="text-4xl font-serif text-zinc-900 mb-2">Resume & Cover Letter</h2>
-               <p className="text-zinc-500 text-lg">Optimize your resume and generate tailored cover letters.</p>
+               <h2 className="text-4xl font-serif text-zinc-900 mb-2">Resume</h2>
+               <p className="text-zinc-500 text-lg">Easily create optimized resumes and cover letters.</p>
            </div>
            
-           <div className="flex gap-8 border-b border-zinc-200">
+           <div className="flex gap-8 border-b border-zinc-200 overflow-x-auto">
+              <button 
+                  onClick={() => setActiveTab('create')}
+                  className={`pb-3 border-b-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'create' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}
+              >
+                  Create
+              </button>
               <button 
                   onClick={() => setActiveTab('analyze')}
-                  className={`pb-3 border-b-2 text-sm font-medium transition-colors ${activeTab === 'analyze' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}
+                  className={`pb-3 border-b-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'analyze' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}
               >
-                  Resume Analysis
+                  Analyze
               </button>
               <button 
                   onClick={() => setActiveTab('cover_letter')}
-                  className={`pb-3 border-b-2 text-sm font-medium transition-colors ${activeTab === 'cover_letter' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}
+                  className={`pb-3 border-b-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'cover_letter' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}
               >
-                  Create Cover Letter
+                  Cover Letter
               </button>
            </div>
       </div>
@@ -643,6 +651,12 @@ export const ResumeOptimizer: React.FC = () => {
                         </div>
                    </>
                )}
+          </div>
+      )}
+
+      {activeTab === 'create' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <ResumeBuilder />
           </div>
       )}
 

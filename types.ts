@@ -38,6 +38,118 @@ export interface ResumeAnalysis {
   }[];
 }
 
+// --- Resume Builder Types ---
+
+export type ResumeFont = 'sans' | 'serif' | 'mono';
+
+export interface ResumeSectionItem {
+  id: string;
+  isVisible: boolean;
+  [key: string]: any;
+}
+
+export interface ResumeEducation extends ResumeSectionItem {
+  school: string;
+  degree: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+}
+
+export interface ResumeExperience extends ResumeSectionItem {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+}
+
+export interface ResumeProject extends ResumeSectionItem {
+  name: string;
+  link: string;
+  description: string;
+}
+
+export interface ResumeSkill extends ResumeSectionItem {
+  name: string; // Simplified to single field
+}
+
+export interface ResumeAward extends ResumeSectionItem {
+  title: string;
+  issuer: string;
+  date: string;
+}
+
+export interface ResumeCertification extends ResumeSectionItem {
+  name: string;
+  issuer: string;
+  date: string;
+}
+
+export interface ResumePublication extends ResumeSectionItem {
+  title: string;
+  publisher: string;
+  date: string;
+  link: string;
+}
+
+export interface ResumeLanguage extends ResumeSectionItem {
+  language: string;
+  proficiency: string;
+}
+
+export interface ResumeInterest extends ResumeSectionItem {
+  name: string;
+}
+
+export interface ResumeAffiliation extends ResumeSectionItem {
+  organization: string;
+  role: string;
+}
+
+export interface ResumeBuilderData {
+  font: ResumeFont;
+  contact: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    location: string;
+    linkedin: string;
+    website: string;
+  };
+  summary: {
+    content: string;
+    isVisible: boolean;
+  };
+  sectionVisibility: {
+    experience: boolean;
+    education: boolean;
+    skills: boolean;
+    projects: boolean;
+    awards: boolean;
+    certifications: boolean;
+    publications: boolean;
+    volunteer: boolean;
+    languages: boolean;
+    interests: boolean;
+    affiliations: boolean;
+  };
+  experience: ResumeExperience[];
+  education: ResumeEducation[];
+  skills: ResumeSkill[];
+  projects: ResumeProject[];
+  awards: ResumeAward[];
+  certifications: ResumeCertification[];
+  publications: ResumePublication[];
+  volunteer: ResumeExperience[]; // Reuse experience structure
+  languages: ResumeLanguage[];
+  interests: ResumeInterest[];
+  affiliations: ResumeAffiliation[];
+}
+
 export interface TranscriptItem {
   role: 'AI' | 'User';
   text: string;
@@ -135,6 +247,7 @@ export interface UserProfile {
     lastUpdated: string;
   };
   resumeAnalysis?: ResumeAnalysis;
+  resumeBuilderData?: ResumeBuilderData; // New field for builder state
   jobs?: Job[];
   interviewSessions?: InterviewSession[];
   upskillData?: UpskillData;

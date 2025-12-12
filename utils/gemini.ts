@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import { ResumeAnalysis, AudioAnalysis, ContentAnalysis, TranscriptItem, CoreConcept, QuizQuestion, LearningResource } from "../types";
 
@@ -170,6 +171,43 @@ async function blobToBase64(blob: Blob): Promise<string> {
         reader.onerror = reject;
         reader.readAsDataURL(blob);
     });
+}
+
+// --- Resume Builder Optimization ---
+
+export async function optimizeResumeText(
+  currentText: string, 
+  sectionType: string, 
+  targetRole?: string
+): Promise<string> {
+  const prompt = `
+    You are an expert resume writer and career coach.
+    Task: Optimize the following text for a "${sectionType}" section in a professional resume.
+    ${targetRole ? `Target Role: ${targetRole}` : ''}
+    
+    Current Text:
+    "${currentText}"
+    
+    Guidelines:
+    1. Improve clarity, impact, and professionalism.
+    2. Use strong action verbs.
+    3. Quantify achievements where possible or suggest where to add numbers (e.g., [x%]).
+    4. Keep it concise and ATS-friendly.
+    5. Maintain the original meaning but make it sound more impressive.
+    6. Return ONLY the optimized text. Do not add quotes or explanations.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+    });
+
+    return response.text.trim();
+  } catch (error) {
+    console.error("Resume Optimization Error:", error);
+    throw new Error("Failed to optimize text.");
+  }
 }
 
 // --- Existing Functions ---
