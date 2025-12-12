@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
@@ -10,6 +11,7 @@ import {
   Calendar,
   Edit2
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { useUser } from '../../context/UserContext';
 import { Job, JobStatus } from '../../types';
 import { Button } from '../ui/Button';
@@ -74,6 +76,36 @@ export const PipelineBoard: React.FC = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [activeMenuId]);
 
+  // --- Confetti Logic ---
+  const triggerSuccessConfetti = () => {
+    // Fire a burst from the bottom corners
+    const end = Date.now() + 1000;
+    const colors = ['#22c55e', '#10b981', '#fbbf24', '#f59e0b']; // Green and Gold
+
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.8 },
+        colors: colors,
+        zIndex: 100,
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.8 },
+        colors: colors,
+        zIndex: 100,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+  };
+
   // --- CRUD Operations ---
 
   const handleSaveJob = () => {
@@ -86,6 +118,19 @@ export const PipelineBoard: React.FC = () => {
       status: formData.status,
       lastUpdated: new Date().toISOString()
     };
+
+    // Check for edge case: New job creation with Accepted status
+    if (!editingJobId && formData.status === 'Accepted') {
+        triggerSuccessConfetti();
+    }
+    
+    // Check for edge case: Editing job moving to Accepted from non-Accepted
+    if (editingJobId) {
+        const existingJob = jobs.find(j => j.id === editingJobId);
+        if (existingJob && existingJob.status !== 'Accepted' && formData.status === 'Accepted') {
+            triggerSuccessConfetti();
+        }
+    }
 
     let newJobs = [...jobs];
     if (editingJobId) {
@@ -152,6 +197,14 @@ export const PipelineBoard: React.FC = () => {
     const jobId = e.dataTransfer.getData('jobId');
     
     if (jobId) {
+      // Find the job before updating
+      const currentJob = jobs.find(j => j.id === jobId);
+      
+      // Trigger confetti if moving TO Accepted from a different status
+      if (currentJob && currentJob.status !== 'Accepted' && status === 'Accepted') {
+         triggerSuccessConfetti();
+      }
+
       const updatedJobs = jobs.map(job => 
         job.id === jobId ? { ...job, status, lastUpdated: new Date().toISOString() } : job
       );
@@ -197,7 +250,7 @@ export const PipelineBoard: React.FC = () => {
               >
                 {/* Column Header */}
                 <div className="p-4 flex items-center justify-between border-b border-zinc-100/50">
-                  <h3 className="font-medium text-zinc-900 flex items-center gap-2">
+                  <h3 className={`font-medium flex items-center gap-2 ${status === 'Accepted' ? 'text-green-700' : 'text-zinc-900'}`}>
                     {status}
                     <span className="text-xs font-normal text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full">
                       {jobsInColumn.length}
