@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   FileText, 
   Video, 
@@ -19,7 +19,9 @@ import {
   Camera,
   Sparkles,
   Search,
-  MessageSquare
+  MessageSquare,
+  Upload,
+  CloudUpload
 } from 'lucide-react';
 import { DashboardTab } from '../types';
 import { Logo } from './Logo';
@@ -59,7 +61,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editRoleInput, setEditRoleInput] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [newResume, setNewResume] = useState<{ fileName: string; base64: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state with user context on load/change
   useEffect(() => {
@@ -67,6 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
       setEditName(user.name);
       setEditRoles(user.targetRoles || []);
       setEditDate(user.startDate);
+      setNewResume(null); // Reset pending resume on user refresh
     }
   }, [user]);
 
@@ -81,9 +87,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
     const dateChanged = editDate !== currentDate;
     // Simple array comparison (assuming order matters or is preserved)
     const rolesChanged = JSON.stringify(editRoles) !== JSON.stringify(currentRoles);
+    const resumeChanged = !!newResume;
 
-    return nameChanged || dateChanged || rolesChanged;
-  }, [user, editName, editRoles, editDate]);
+    return nameChanged || dateChanged || rolesChanged || resumeChanged;
+  }, [user, editName, editRoles, editDate, newResume]);
 
   const handleSignOut = () => {
     clearUser();
@@ -94,13 +101,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
     setIsSaving(true);
     // Simulate network delay for "snappy" feel but realistic feedback
     setTimeout(() => {
-      updateUser({
+      const updates: any = {
         name: editName,
         targetRoles: editRoles,
         startDate: editDate
-      });
+      };
+
+      if (newResume) {
+        updates.resumeData = {
+            fileName: newResume.fileName,
+            base64: newResume.base64,
+            lastUpdated: new Date().toISOString()
+        };
+      }
+
+      updateUser(updates);
+      setNewResume(null);
       setIsSaving(false);
     }, 600);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            setNewResume({
+                fileName: file.name,
+                base64: base64
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+    // Reset value to allow re-uploading same file if needed
+    e.target.value = '';
   };
 
   const addRole = () => {
@@ -348,35 +383,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateHome }) => {
                     {/* Resume Section */}
                     <div className="pb-6 border-b border-zinc-100">
                         <label className="text-sm font-medium text-zinc-700 block mb-3">Saved Resume</label>
-                        {user?.resumeData ? (
+                        
+                        <input 
+                            type="file" 
+                            accept="application/pdf" 
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                        />
+
+                        {newResume ? (
+                            <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className="p-2 bg-white border border-blue-100 rounded-md">
+                                        <FileText className="text-blue-500 w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-sm text-zinc-900 truncate">{newResume.fileName}</p>
+                                        <p className="text-xs text-blue-600 font-medium">Ready to save</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <Button size="sm" variant="ghost" onClick={() => setNewResume(null)} className="text-zinc-500 hover:text-red-600">
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : user?.resumeData ? (
                             <div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg transition-colors hover:border-zinc-300 hover:bg-zinc-100">
                                 <div 
-                                    className="flex items-center gap-3 cursor-pointer flex-1"
+                                    className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                                     onClick={handleOpenResume}
                                     title="View Resume"
                                 >
                                     <div className="p-2 bg-white border border-zinc-100 rounded-md">
                                         <FileText className="text-zinc-500 w-5 h-5" />
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-sm text-zinc-900 hover:underline decoration-zinc-300 underline-offset-2">{user.resumeData.fileName}</p>
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-sm text-zinc-900 hover:underline decoration-zinc-300 underline-offset-2 truncate">{user.resumeData.fileName}</p>
                                         <p className="text-xs text-zinc-500">Updated {new Date(user.resumeData.lastUpdated).toLocaleDateString()}</p>
                                     </div>
                                 </div>
-                                <Button size="sm" variant="outline" onClick={handleDownloadResume}>
-                                    <Download className="w-4 h-4" />
-                                </Button>
+                                <div className="flex gap-2 shrink-0">
+                                    <Button size="sm" variant="outline" onClick={handleDownloadResume}>
+                                        <Download className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                        <CloudUpload className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
-                            <div className="text-sm text-zinc-500">
-                                No resume uploaded yet.{" "}
-                                <button 
-                                  onClick={() => setActiveTab('resume')}
-                                  className="underline hover:text-zinc-800 transition-colors"
-                                >
-                                  Visit the resume tab
-                                </button>
-                                {" "}to add one.
+                            <div 
+                                className="border-2 border-dashed border-zinc-200 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-zinc-50 hover:border-zinc-300 transition-all group"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center mb-2 group-hover:bg-white border border-zinc-100">
+                                    <Upload className="w-5 h-5 text-zinc-400 group-hover:text-zinc-600" />
+                                </div>
+                                <p className="text-sm font-medium text-zinc-700">Upload Resume</p>
+                                <p className="text-xs text-zinc-500">PDF up to 4MB</p>
                             </div>
                         )}
                     </div>

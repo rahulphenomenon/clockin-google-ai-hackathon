@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, Check, Plus, X, Calendar, Info, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -137,7 +138,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Enter your first name..."
+                placeholder="Enter your full name..."
                 className="w-full text-2xl md:text-3xl text-zinc-900 border-b-2 border-zinc-200 py-2 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-300 transition-colors bg-transparent"
                 autoFocus
               />
@@ -197,7 +198,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
               <label className="block text-2xl md:text-3xl font-medium text-zinc-900">
                 When do you want to start your new job?
               </label>
-              <p className="text-zinc-500">An estimate helps us prioritize your roadmap.</p>
               
               <div className="relative mt-6">
                 <input
@@ -239,7 +239,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onEx
                     disabled={
                     (step === 1 && !name) || 
                     (step === 2 && roles.length === 0) ||
-                    (step === 3 && (!startDate || !!dateError))
+                    (step === 3 && !!dateError)
                     }
                 >
                     {step === totalSteps ? 'Take me to the app' : 'Continue'} 

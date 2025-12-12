@@ -19,7 +19,7 @@ export const Hero: React.FC<HeroProps> = ({ onGetStarted }) => {
 
         {/* Subheading */}
         <p className="max-w-2xl text-lg sm:text-xl text-zinc-500 mb-10 leading-relaxed font-light">
-          Consolidate your resume building, interview prep, and mentorship into one integrated, easy-to-use platform.
+          All the tools you need to get hired in one easy to use platform. Build a winning resume, prep for interviews, track applications, upskill, and more.
         </p>
 
         {/* CTA */}

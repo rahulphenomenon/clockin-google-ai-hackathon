@@ -7,22 +7,22 @@ import { Feature } from '../types';
 const FEATURES: Feature[] = [
   {
     id: 'resume',
-    title: 'Resume AI',
-    description: 'Optimize your CV to pass ATS filters. Our AI analyzes your resume against job descriptions to ensure you stand out.',
+    title: 'Resume Builder',
+    description: 'Easily build optimized resumes that pass ATS filters. Write tailored cover letters in one click.',
     icon: FileText,
     mockupType: 'resume'
   },
   {
     id: 'interview',
-    title: 'Mock Interview',
-    description: 'Practice with real-time feedback. Simulate behavioral and technical interviews with an AI that adapts to your responses.',
+    title: 'Mock Interviews',
+    description: 'Practice unlimited interviews. Interviews are tailored to your target roles and companies, and take place in a setting that closely resemble an actual video call. Get detailed feedback on what you\'re doing well and what you can improve on.',
     icon: Video,
     mockupType: 'interview'
   },
   {
     id: 'upskill',
     title: 'Upskill & Learn',
-    description: 'Curated paths to fill knowledge gaps. Get personalized learning roadmaps based on your target role and current skills.',
+    description: 'Get personalized learning roadmaps based on your target role and current skills. Brush up on core concepts and take quizzes to test your understanding.',
     icon: GraduationCap,
     mockupType: 'upskill'
   },
@@ -43,7 +43,7 @@ const FEATURES: Feature[] = [
   {
     id: 'mentor-match',
     title: 'Mentor Match',
-    description: 'Connect with mentors at your target companies for application referrals and insider interview tips.',
+    description: 'Connect with mentors already at your target companies. Get application referrals, information about the hiring process, and interview tips.',
     icon: Users,
     mockupType: 'mentorship'
   }

@@ -404,7 +404,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                     className="w-full h-10 px-3 rounded-md border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900"
                 >
                     {user?.targetRoles.map(r => <option key={r} value={r}>{r}</option>)}
-                    <option value="General Software Engineer">General Software Engineer</option>
+                    <option value="General Software Engineer">Senior Software Engineer</option>
                     <option value="Product Manager">Product Manager</option>
                 </select>
              </div>
@@ -444,11 +444,11 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
              </div>
 
              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700">Context (Optional)</label>
+                <label className="text-sm font-medium text-zinc-700">Additional Context (Optional)</label>
                 <textarea 
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
-                    placeholder="Enter details you know about the person who is interviewing you..."
+                    placeholder="Enter details you know about the person who is interviewing you, details of past rounds, etc."
                     className="w-full min-h-[80px] px-3 py-2 rounded-md border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
                 />
              </div>
