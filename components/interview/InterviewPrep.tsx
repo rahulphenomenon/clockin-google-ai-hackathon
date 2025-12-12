@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Video, Plus, Calendar, Clock, MessageSquare, ChevronRight, PlayCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -179,9 +180,6 @@ export const InterviewPrep: React.FC = () => {
                                 </span>
                              )}
 
-                             <span className="px-3 py-1 bg-zinc-100 text-xs font-medium rounded-full text-zinc-600 hidden sm:inline-block">
-                                 {session.type}
-                             </span>
                              <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-900 transition-colors" />
                           </div>
                       </div>

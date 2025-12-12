@@ -1,5 +1,4 @@
 
-
 import { LucideIcon } from 'lucide-react';
 
 export interface Feature {
@@ -186,7 +185,6 @@ export interface InterviewSession {
   date: string;
   durationSeconds: number;
   questionCount: number;
-  type: 'Behavioral' | 'Technical' | 'Mixed';
   questionsList?: string[];
   transcript?: TranscriptItem[];
   audioAnalysis?: AudioAnalysis;

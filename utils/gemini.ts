@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import { ResumeAnalysis, AudioAnalysis, ContentAnalysis, TranscriptItem, CoreConcept, QuizQuestion, LearningResource } from "../types";
 
@@ -50,14 +49,9 @@ const QUESTIONS_SCHEMA: Schema = {
       type: Type.ARRAY,
       items: { type: Type.STRING },
       description: "List of interview questions"
-    },
-    type: {
-        type: Type.STRING,
-        enum: ["Behavioral", "Technical", "Mixed"],
-        description: "The type of interview generated"
     }
   },
-  required: ["questions", "type"]
+  required: ["questions"]
 };
 
 const AUDIO_ANALYSIS_SCHEMA: Schema = {
@@ -327,7 +321,7 @@ export async function generateInterviewQuestions(
     durationMinutes: number,
     context: string,
     candidateName: string
-): Promise<{ questions: string[]; type: 'Behavioral' | 'Technical' | 'Mixed' }> {
+): Promise<{ questions: string[] }> {
     
     const questionCount = Math.max(3, Math.floor(durationMinutes / 2.5));
 
@@ -344,7 +338,7 @@ export async function generateInterviewQuestions(
         Include a mix of introductory, behavioral, and technical questions appropriate for the role. Follow a traditional interview format given the context, which typically starts with an introduction, asks users about 
         concepts or situations relevant to the role and company, and ends with asking the candidate if they have any questions.
         
-        Return JSON with the list of questions and the overall type of interview.
+        Return JSON with the list of questions.
     `;
 
     try {
@@ -367,8 +361,6 @@ export async function generateInterviewQuestions(
 }
 
 export async function generateSpeech(text: string): Promise<string> {
-    const voiceName = 'Puck'; // Hardcoded to Male voice as per request
-    
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-preview-tts',
@@ -379,7 +371,9 @@ export async function generateSpeech(text: string): Promise<string> {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: {
                     voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName }
+                        prebuiltVoiceConfig: {
+                            voiceName: 'Puck',
+                        }
                     }
                 }
             }

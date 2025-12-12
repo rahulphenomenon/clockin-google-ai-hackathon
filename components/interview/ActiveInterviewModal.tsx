@@ -56,7 +56,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [startTime, setStartTime] = useState<number>(0);
-  const [interviewType, setInterviewType] = useState<'Behavioral' | 'Technical' | 'Mixed'>('Behavioral');
   const [loadingProgress, setLoadingProgress] = useState('');
   const [initializationError, setInitializationError] = useState<string | null>(null);
 
@@ -235,7 +234,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
       const result = await generateInterviewQuestions(role, company, jobDescription, duration, context, candidateName);
       
       setQuestions(result.questions);
-      setInterviewType(result.type);
       
       if (!result.questions || result.questions.length === 0) {
         throw new Error("Failed to generate questions.");
@@ -373,7 +371,6 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
         date: new Date().toISOString(),
         durationSeconds: durationSec,
         questionCount: questions.length,
-        type: interviewType,
         questionsList: questions
     };
 
@@ -421,7 +418,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700">Duration (Minimum)</label>
+                    <label className="text-sm font-medium text-zinc-700">Duration (Minutes)</label>
                     <input 
                         type="number"
                         min={1}
@@ -527,7 +524,7 @@ export const ActiveInterviewModal: React.FC<ActiveInterviewModalProps> = ({ onCl
                     </span>
                  </div>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleFinishInterview} className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border-zinc-700">
+            <Button variant="secondary" size="sm" onClick={handleFinishInterview} className="bg-zinc-800 text-white hover:bg-zinc-700 border-zinc-700">
                 End Interview
             </Button>
         </div>
