@@ -4,7 +4,6 @@ import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, X, ArrowRight, L
 import { Button } from '../ui/Button';
 import { useUser } from '../../context/UserContext';
 import { analyzeResume, generateCoverLetter } from '../../utils/gemini';
-import { SAMPLE_RESUME_BASE64, SAMPLE_RESUME_FILENAME } from '../../data/sampleResume';
 
 const SAMPLE_JD = `Project Manager — ACME Technologies
 Location: Hybrid (SF / Remote)
@@ -107,28 +106,36 @@ export const ResumeOptimizer: React.FC = () => {
     reader.readAsDataURL(file);
     e.target.value = '';
   };
-
-  const loadSampleResume = async () => {
-    if (activeTab === 'analyze') {
-        setError(null);
-    } else {
-        setClError(null);
-    }
-
-    try {
-        // Use imported sample resume, add data URI prefix to ensure it works with existing viewer logic
-        const base64 = `data:application/pdf;base64,${SAMPLE_RESUME_BASE64}`;
-        await uploadResume(base64, SAMPLE_RESUME_FILENAME);
-    } catch (err) {
-        console.error(err);
-        const msg = "Failed to load sample resume.";
+    const loadSampleResume = async () => {
         if (activeTab === 'analyze') {
-            setError(msg);
+            setError(null);
         } else {
-            setClError(msg);
+            setClError(null);
         }
-    }
-  };
+
+        try {
+            // Fetch the actual PDF from your public/data folder
+            const response = await fetch('../../data/sample_resume.pdf');
+            const blob = await response.blob();
+            
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+            
+            await uploadResume(base64, 'sample_resume.pdf');
+        } catch (err) {
+            console.error(err);
+            const msg = "Failed to load sample resume.";
+            if (activeTab === 'analyze') {
+                setError(msg);
+            } else {
+                setClError(msg);
+            }
+        }
+    };
 
   // Only uploads the resume to state, does NOT analyze
   const uploadResume = async (base64: string, fileName: string) => {
@@ -604,9 +611,11 @@ export const ResumeOptimizer: React.FC = () => {
                                    <h3 className="font-medium text-zinc-900">Ready to Analyze</h3>
                                    <p className="text-sm text-zinc-500">Get a detailed score and feedback for your resume.</p>
                                </div>
-                               <Button onClick={handleAnalyzeCurrentResume} disabled={isAnalyzing} className="shadow-md">
-                                   <Sparkles className="w-4 h-4 mr-2" /> Analyze Now
-                               </Button>
+                               <div className="flex items-center gap-2">
+                                    <Button onClick={handleAnalyzeCurrentResume} disabled={isAnalyzing} className="shadow-md">
+                                        <Sparkles className="w-4 h-4 mr-2" /> Analyze Now
+                                    </Button>
+                               </div>
                            </div>
                        )}
                        {error && (
